@@ -1,0 +1,50 @@
+# Koyeb service definition (worker, built from the Dockerfile).
+# Dashboard: Create Service -> GitHub -> Builder: Dockerfile -> Service type: Worker, then add the variables below.
+name: noxbeats
+type: WORKER
+git:
+  repository: github.com/Badmunda05/NoxBeats
+  branch: main
+build:
+  dockerfile: Dockerfile
+env:
+  - name: API_ID
+    value: ""   # required
+  - name: API_HASH
+    value: ""   # required
+  - name: BOT_TOKEN
+    value: ""   # required
+  - name: MONGO_DB_URI
+    value: ""   # required
+  - name: LOGGER_ID
+    value: ""   # required
+  - name: OWNER_ID
+    value: ""   # required
+  - name: SESSION
+    value: ""   # required
+  - name: SESSION2
+    value: ""   # optional
+  - name: SESSION3
+    value: ""   # optional
+  - name: SESSION_TYPE
+    value: "pyrogram"
+  - name: API_URL
+    value: "https://api.yourdomain.site"
+  - name: API_KEY
+    value: ""   # optional
+  - name: SUPPORT_CHANNEL
+    value: "https://t.me/PBX_UPDATE"
+  - name: SUPPORT_CHAT
+    value: "https://t.me/PBXCHATS"
+  - name: DURATION_LIMIT
+    value: "60"
+  - name: QUEUE_LIMIT
+    value: "20"
+  - name: AUTO_LEAVE
+    value: "False"
+  - name: AUTO_END
+    value: "False"
+  - name: COOKIES_URL
+    value: ""   # optional
+  - name: SOURCE_URL
+    value: "https://github.com/Badmunda05/NoxBeats/fork"

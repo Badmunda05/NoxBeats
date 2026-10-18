@@ -1,0 +1,5 @@
+Telegram's public API definition (TL schema, layer 222): api.tl = methods/types of the user API,
+mtproto.tl = the transport-level types. The in-process MTProto client of the assistant account reads
+these two files at start-up to build/parse requests (join voice chat, send message, ...).
+Files come from the Telethon project (MIT license, telethon_generator/data/).
+To move to a newer layer replace both files and update kLayer in Bad/mtp/client.cpp.

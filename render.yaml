@@ -1,0 +1,48 @@
+services:
+  - type: worker
+    name: noxbeats
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    autoDeploy: true
+    envVars:
+      - key: API_ID
+        sync: false
+      - key: API_HASH
+        sync: false
+      - key: BOT_TOKEN
+        sync: false
+      - key: MONGO_DB_URI
+        sync: false
+      - key: LOGGER_ID
+        sync: false
+      - key: OWNER_ID
+        sync: false
+      - key: SESSION
+        sync: false
+      - key: SESSION2
+        sync: false
+      - key: SESSION3
+        sync: false
+      - key: SESSION_TYPE
+        value: "pyrogram"
+      - key: API_URL
+        value: "https://api.yourdomain.site"
+      - key: API_KEY
+        sync: false
+      - key: SUPPORT_CHANNEL
+        value: "https://t.me/PBX_UPDATE"
+      - key: SUPPORT_CHAT
+        value: "https://t.me/PBXCHATS"
+      - key: DURATION_LIMIT
+        value: "60"
+      - key: QUEUE_LIMIT
+        value: "20"
+      - key: AUTO_LEAVE
+        value: "False"
+      - key: AUTO_END
+        value: "False"
+      - key: COOKIES_URL
+        sync: false
+      - key: SOURCE_URL
+        value: "https://github.com/Badmunda05/NoxBeats/fork"

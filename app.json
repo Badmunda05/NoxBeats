@@ -1,0 +1,103 @@
+{
+    "name": "NØX BEATS",
+    "description": "NØX BEATS - Telegram voice-chat music bot written in C++20.",
+    "repository": "https://github.com/Badmunda05/NoxBeats",
+    "keywords": [
+        "telegram",
+        "music-bot",
+        "cpp",
+        "voice-chat"
+    ],
+    "stack": "container",
+    "env": {
+        "API_ID": {
+            "description": "Telegram API ID from https://my.telegram.org",
+            "required": true
+        },
+        "API_HASH": {
+            "description": "Telegram API hash from https://my.telegram.org",
+            "required": true
+        },
+        "BOT_TOKEN": {
+            "description": "Bot token from @BotFather",
+            "required": true
+        },
+        "MONGO_DB_URI": {
+            "description": "MongoDB connection string (MongoDB Atlas free cluster works). Settings are stored here.",
+            "required": true
+        },
+        "LOGGER_ID": {
+            "description": "Log group id (the bot must be admin there, add the assistant account too)",
+            "required": true
+        },
+        "OWNER_ID": {
+            "description": "Your Telegram user id",
+            "required": true
+        },
+        "SESSION": {
+            "description": "Assistant account string session (Pyrogram v2 or Telethon). Never use the same session in two places.",
+            "required": true
+        },
+        "SESSION2": {
+            "description": "Optional 2nd assistant session",
+            "required": false
+        },
+        "SESSION3": {
+            "description": "Optional 3rd assistant session",
+            "required": false
+        },
+        "SESSION_TYPE": {
+            "description": "pyrogram or telethon",
+            "required": false,
+            "value": "pyrogram"
+        },
+        "API_URL": {
+            "description": "Download API base URL",
+            "required": false,
+            "value": "https://api.yourdomain.site"
+        },
+        "API_KEY": {
+            "description": "Optional download API key. DM https://t.me/BadMundaXD for a key, or use your own API with API_URL. Cookies via COOKIES_URL also work.",
+            "required": false
+        },
+        "SUPPORT_CHANNEL": {
+            "description": "Updates channel link",
+            "required": false,
+            "value": "https://t.me/PBX_UPDATE"
+        },
+        "SUPPORT_CHAT": {
+            "description": "Support group link",
+            "required": false,
+            "value": "https://t.me/PBXCHATS"
+        },
+        "DURATION_LIMIT": {
+            "description": "Longest playable track in minutes",
+            "required": false,
+            "value": "60"
+        },
+        "QUEUE_LIMIT": {
+            "description": "Max tracks per chat queue",
+            "required": false,
+            "value": "20"
+        },
+        "AUTO_LEAVE": {
+            "description": "Assistant leaves idle chats (True/False)",
+            "required": false,
+            "value": "False"
+        },
+        "AUTO_END": {
+            "description": "End the stream when the voice chat is empty (True/False)",
+            "required": false,
+            "value": "False"
+        },
+        "SOURCE_URL": {
+            "description": "Link behind the Source button",
+            "required": false,
+            "value": "https://github.com/Badmunda05/NoxBeats/fork"
+        },
+        "COOKIES_URL": {
+            "description": "Optional batbin.me cookie file links (space separated) for the yt-dlp fallback",
+            "required": false
+        }
+    }
+}
