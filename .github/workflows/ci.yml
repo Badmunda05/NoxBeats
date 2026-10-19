@@ -1,4 +1,4 @@
-name: Build
+name: CI
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   build:
+    name: Build (CMake)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -31,3 +32,12 @@ jobs:
 
       - name: Build
         run: cmake --build build -j2 --target cpp-bot
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t noxbeats .
