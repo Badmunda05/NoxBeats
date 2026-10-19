@@ -65,7 +65,7 @@ public:
     bool get_cmd_delete(i64 chat);
     void set_cmd_delete(i64 chat, bool v);
     bool get_play_mode(i64 chat);
-    void set_play_mode(i64 chat, bool remove);   // python signature: remove=False -> enable
+    void set_play_mode(i64 chat, bool remove);   // remove=false -> enable
 
     std::string get_lang(i64 chat);
     void set_lang(i64 chat, const std::string& code);

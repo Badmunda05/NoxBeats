@@ -142,7 +142,7 @@ int DB::get_assistant(i64 c) {
     return it->second;
 }
 
-static bool is_chat_id(i64 id) { return id < 0; }   // python: str(id).startswith("-")
+static bool is_chat_id(i64 id) { return id < 0; }   // chat ids are negative
 void DB::add_blacklist(i64 id) { LOCK; (is_chat_id(id) ? bl_chats_ : bl_users_).insert(id); save_locked(); }
 void DB::del_blacklist(i64 id) { LOCK; (is_chat_id(id) ? bl_chats_ : bl_users_).erase(id); save_locked(); }
 bool DB::is_bl_chat(i64 id) { LOCK; return bl_chats_.count(id) > 0; }

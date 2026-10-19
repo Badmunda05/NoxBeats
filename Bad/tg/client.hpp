@@ -1,6 +1,6 @@
 // Telegram abstraction. The bot logic only talks to this interface; implement it with TDLib
 // (Bad/tg/tdlib_client.cpp in your tree) or use MockClient for tests.
-// Replaces pyrogram.Client (bot account) + userbot join/leave helpers.
+// Telegram client interface: bot account calls + assistant (userbot) join/leave/send helpers.
 #pragma once
 #include <atomic>
 #include <functional>

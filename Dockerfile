@@ -17,10 +17,17 @@ RUN cmake -B build -DCMAKE_BUILD_TYPE=Release -DWITH_NTGCALLS=ON && cmake --buil
 
 # ---- runtime ----
 FROM ubuntu:24.04
+# yt-dlp: the standalone release binary (no Python needed). Set YTDLP_VERSION to a release tag (for example 2026.08.19)
+# to pin it; the bot also runs `yt-dlp -U` at start (disable with YTDLP_UPDATE=False).
+ARG YTDLP_VERSION=latest
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        ffmpeg curl ca-certificates libcurl4 libssl3 zlib1g libmongoc-1.0-0t64 python3 \
-    && curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod +x /usr/local/bin/yt-dlp && rm -rf /var/lib/apt/lists/*
+        ffmpeg curl ca-certificates libcurl4 libssl3 zlib1g libmongoc-1.0-0t64 \
+    && if [ "$(uname -m)" = "x86_64" ]; then YT=yt-dlp_linux; else YT=yt-dlp_linux_aarch64; fi \
+    && if [ "$YTDLP_VERSION" = "latest" ]; then URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YT"; \
+       else URL="https://github.com/yt-dlp/yt-dlp/releases/download/$YTDLP_VERSION/$YT"; fi \
+    && curl -fsSL "$URL" -o /usr/local/bin/yt-dlp \
+    && chmod +x /usr/local/bin/yt-dlp && yt-dlp --version \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /src/build/cpp-bot /app/cpp-bot
 COPY --from=build /src/third_party/ntgcalls/lib/libntgcalls.so /app/lib/libntgcalls.so

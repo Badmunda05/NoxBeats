@@ -1,4 +1,4 @@
-// Port of bad/helpers/_queue.py. Thread-safe; items are shared so callers can mutate .time / .message_id.
+// Chat queues. Thread-safe; items are shared so callers can mutate .time / .message_id.
 #pragma once
 #include <deque>
 #include <map>

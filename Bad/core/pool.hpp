@@ -1,4 +1,4 @@
-// Tiny fixed-size thread pool: every incoming update is handled on a worker (python used asyncio tasks).
+// Tiny fixed-size thread pool: every incoming update is handled on a worker.
 #pragma once
 #include <condition_variable>
 #include <functional>

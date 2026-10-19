@@ -1,4 +1,4 @@
-// Port of bad/__main__.py + bad/__init__.py boot sequence.
+// Boot sequence: config, database, Telegram client, assistants, modules, background tasks.
 #include <csignal>
 #include <cstdio>
 #include <cstring>
@@ -93,10 +93,21 @@ int main(int argc, char** argv) {
         }
     }
     log::info("Bot started as @" + client->me().username);
-    std::thread joiner;
+    std::thread joiner, updater;
     if (!mock) {
         for (int i = 1; i <= client->assistants(); ++i)
             client->assistant_send(i, config().LOGGER_ID, client->assistants() > 1 ? "Assistant " + std::to_string(i) + " started" : "Assistant started");
+        // keep yt-dlp current (YouTube changes often); needs write access to the yt-dlp binary, otherwise it only logs
+        if (config().YTDLP_UPDATE) {
+            updater = std::thread([] {
+                auto r = util::exec({yt().yt_dlp, "-U"}, 120);
+                std::string out = util::trim(r.out + r.err);
+                size_t nl = out.find_last_of('\n');
+                if (nl != std::string::npos) out = out.substr(nl + 1);
+                if (r.code == 0) log::info("yt-dlp update check: " + out);
+                else log::warn("yt-dlp update check failed (exit " + std::to_string(r.code) + "): " + out);
+            });
+        }
         // every assistant joins the support group and the updates channel (SUPPORT_CHAT / SUPPORT_CHANNEL)
         joiner = std::thread([c = client.get()] {
             for (int i = 1; i <= c->assistants(); ++i) {
@@ -167,6 +178,7 @@ int main(int argc, char** argv) {
     db().close();
     if (repl.joinable()) repl.join();
     if (joiner.joinable()) joiner.join();
+    if (updater.joinable()) updater.join();
     shutdown_adapters();
     log::info("Stopped.");
     if (restart_requested()) execv("/proc/self/exe", argv);

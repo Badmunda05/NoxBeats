@@ -56,7 +56,7 @@ Keyboard queue_markup(i64 chat, const std::string& text, bool playing) {
 }
 
 Keyboard settings_markup(const Strings& L, bool admin_only, bool cmd_delete, const std::string& language) {
-    auto onoff = [](bool b) { return std::string(b ? "True" : "False"); };   // python shows the bool
+    auto onoff = [](bool b) { return std::string(b ? "True" : "False"); };   // shown as True / False
     auto codes = lang().codes();
     return {
         {cb(L["play_mode"] + " ➜", "settings"), cb(onoff(admin_only), "settings play")},

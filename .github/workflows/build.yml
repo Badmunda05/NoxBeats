@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++ cmake make curl unzip \
+            libcurl4-openssl-dev zlib1g-dev libmongoc-dev nlohmann-json3-dev pkg-config
+
+      - name: Get libntgcalls
+        run: |
+          mkdir -p third_party/ntgcalls/lib third_party/ntgcalls/include /tmp/ntg
+          curl -fsSL https://github.com/pytgcalls/ntgcalls/releases/download/v2.1.0/ntgcalls.linux-x86_64-shared_libs.zip -o /tmp/ntg.zip
+          unzip -q /tmp/ntg.zip -d /tmp/ntg
+          cp "$(find /tmp/ntg -name libntgcalls.so | head -n1)" third_party/ntgcalls/lib/
+          cp "$(find /tmp/ntg -name ntgcalls.h | head -n1)" third_party/ntgcalls/include/
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWITH_NTGCALLS=ON
+
+      - name: Build
+        run: cmake --build build -j2 --target cpp-bot

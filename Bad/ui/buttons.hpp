@@ -1,4 +1,4 @@
-// Port of bad/helpers/_inline.py
+// Inline keyboards (start, help, settings, language, player controls).
 #pragma once
 #include <string>
 #include "../core/types.hpp"

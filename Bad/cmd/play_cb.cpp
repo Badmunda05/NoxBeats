@@ -1,4 +1,4 @@
-// Port of plugins/callbacks.py (controls / cancel_dl). help/settings/lang callbacks live in settings.cpp.
+// Callbacks for the player controls and download cancel. Help/settings/lang callbacks live in settings.cpp.
 #include <regex>
 #include "common.hpp"
 #include "../core/calls.hpp"

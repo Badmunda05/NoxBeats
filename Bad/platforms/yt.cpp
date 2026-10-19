@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 
 YouTube::YouTube()
     : regex_(R"((https?://)?(www\.|m\.|music\.)?(youtube\.com/(watch\?v=|shorts/|playlist\?list=)|youtu\.be/)([A-Za-z0-9_-]{11}|PL[A-Za-z0-9_-]+)([&?][^\s]*)?)"),
-      // ECMAScript has no lookahead-free equivalent of the python negative lookahead, so invalid() is
+      // ECMAScript has no lookahead-free negative lookahead, so invalid() is
       // implemented as: youtube host && !valid().
       iregex_(R"(https?://(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\S*)") {}
 
@@ -261,7 +261,7 @@ static std::string url_encode(const std::string& s) {
     return o;
 }
 
-// Download through the HTTP API (API_URL/download?url=<id>&type=audio|video&api_key=...), like the Python Youtube.py.
+// Download through the HTTP API (API_URL/download?url=<id>&type=audio|video&api_key=...).
 static std::string download_via_api(const std::string& id, bool video) {
     const Config& c = config();
     if (c.API_KEY.empty() || c.API_URL.empty()) return "";

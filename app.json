@@ -98,6 +98,11 @@
         "COOKIES_URL": {
             "description": "Optional batbin.me cookie file links (space separated) for the yt-dlp fallback",
             "required": false
+        },
+        "YTDLP_UPDATE": {
+            "description": "Run yt-dlp -U once at start (True/False)",
+            "required": false,
+            "value": "True"
         }
     }
 }

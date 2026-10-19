@@ -1,4 +1,4 @@
-// Small helpers. Port of bad/helpers/_utilities.py (pure parts) + process runner.
+// Small helpers and a process runner.
 #pragma once
 #include <string>
 #include <vector>
@@ -19,7 +19,7 @@ bool is_digits(const std::string& s);
 bool starts_with(const std::string& s, const std::string& p);
 bool contains(const std::vector<std::string>& v, const std::string& x);
 std::string lower(std::string s);
-std::string uptime_string(long seconds);             // same format as ping.py
+std::string uptime_string(long seconds);             // same format as /ping shows
 std::string truncate(const std::string& s, size_t n);  // UTF-8 safe (by code points)
 std::string url_of(const Message& m);                // get_url()
 std::optional<std::string> utf16_substr(const std::string& s, int off, int len);

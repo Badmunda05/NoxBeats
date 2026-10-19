@@ -1,4 +1,4 @@
-// Minimal thread-safe logger writing to stderr and log.txt (python: RotatingFileHandler 10MB x5).
+// Minimal thread-safe logger writing to stderr and log.txt (rotates at 10 MB, keeps 5 files).
 #pragma once
 #include <string>
 namespace bot::log {

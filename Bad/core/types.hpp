@@ -1,5 +1,5 @@
 // Shared data types: Telegram-side objects and queue items.
-// Ported from bad/helpers/_dataclass.py (Media + Track are merged into one struct).
+// Shared types (Media and Track are merged into one struct).
 #pragma once
 #include <cstdint>
 #include <memory>
@@ -78,7 +78,7 @@ struct CallbackQuery {
     std::string data;
 };
 
-// One queue item. Python had Media (telegram files / m3u8) and Track (YouTube).
+// One queue item: a Telegram file / m3u8 stream or a YouTube track.
 struct Track {
     std::string id;
     std::string channel_name;

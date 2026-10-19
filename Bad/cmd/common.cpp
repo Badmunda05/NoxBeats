@@ -86,7 +86,7 @@ void load_runtime_sets() {
     g_bl_users = db().bl_users();
 }
 
-// Python: app.sudoers.add / .discard are used directly by the sudo plugin.
+// Sudo set helpers used by the sudo commands.
 void sudo_add(i64 id) { std::lock_guard<std::mutex> lk(g_set_mu); g_sudo.insert(id); }
 void sudo_del(i64 id) { std::lock_guard<std::mutex> lk(g_set_mu); g_sudo.erase(id); }
 
@@ -95,7 +95,7 @@ void dispatch_message(const Message& m) {
     if (!m.from && !m.video_chat_started && !m.video_chat_ended && m.new_chat_members.empty()) return;
     const Strings& L = lang().get(db().get_lang(m.chat.id));
 
-    // service messages: separate "groups" in pyrogram, so they all run
+    // service messages are handled separately, so they all run
     if (!m.new_chat_members.empty())
         for (auto& h : member_routes()) guarded(m.chat.id, [&] { h(m, L); });
     if (m.video_chat_started || m.video_chat_ended)
@@ -148,7 +148,7 @@ bool is_admin(i64 chat, i64 user) {
         auto s = tg::client().member_status(chat, user);
         return s == tg::MemberStatus::Admin || s == tg::MemberStatus::Owner;
     } catch (...) {
-        return false;   // python: StopPropagation
+        return false;   // stop handling this update
     }
 }
 

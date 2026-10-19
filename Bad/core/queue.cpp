@@ -23,10 +23,10 @@ void Queue::force_add(i64 chat, TrackPtr item, int remove) {
     if (!d.empty()) d.pop_front();           // remove_current
     d.push_front(item);
     if (remove > 0 && static_cast<size_t>(remove) < d.size()) {
-        // python: rotate(-remove); popleft(); rotate(remove)  ==  erase element at index `remove`
+        // erase the element at index `remove`
         d.erase(d.begin() + remove);
     } else if (remove == 0) {
-        // python quirk: remove=0 is falsy -> nothing extra removed
+        // remove=0 -> nothing extra removed
     }
 }
 

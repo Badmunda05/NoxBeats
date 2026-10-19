@@ -1,4 +1,4 @@
-// Port of bad/core/youtube.py. Search/playlist/download are delegated to the yt-dlp binary
+// YouTube search, playlist and download. Search uses InnerTube first; playlist and fallback download use the yt-dlp binary
 // (spawned without a shell). Needs `yt-dlp` and `ffmpeg` in PATH.
 #pragma once
 #include <mutex>

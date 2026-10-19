@@ -1,4 +1,4 @@
-// Port of bad/core/lang.py: JSON string tables + python-style "{0}" / "{2:.1f}" formatting.
+// JSON string tables with "{0}" / "{2:.1f}" formatting.
 #pragma once
 #include <map>
 #include <string>

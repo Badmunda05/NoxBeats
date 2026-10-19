@@ -1,4 +1,4 @@
-// Port of config.py. Reads .env (if present) then the process environment.
+// Configuration. Reads .env (if present) then the process environment.
 #pragma once
 #include <string>
 #include <vector>
@@ -14,7 +14,7 @@ struct Config {
     i64 LOGGER_ID = 0, OWNER_ID = 0;
     int DURATION_LIMIT = 60 * 60;           // seconds
     int QUEUE_LIMIT = 20, PLAYLIST_LIMIT = 20;
-    std::vector<std::string> SESSIONS;      // SESSION / SESSION2 / SESSION3 / STRING_SESSION(S): Pyrogram strings
+    std::vector<std::string> SESSIONS;      // SESSION / SESSION2 / SESSION3 / STRING_SESSION(S): string sessions
     std::string SESSION_TYPE = "pyrogram";  // pyrogram | telethon
     std::string BOT_API_URL = "https://api.telegram.org";   // local Bot API server => 2 GB downloads
     std::string API_URL = "https://api.yourdomain.site";   // download API (YouTube -> mp3/mp4); used when API_KEY is set
@@ -23,6 +23,7 @@ struct Config {
     std::string SOURCE_URL = "https://github.com/Badmunda05/NoxBeats/fork";
     std::string SUPPORT_CHAT = "https://t.me/PBXCHATS";
     bool AUTO_LEAVE = false, AUTO_END = false, THUMB_GEN = true, VIDEO_PLAY = true;
+    bool YTDLP_UPDATE = true;               // run `yt-dlp -U` once at start
     std::string LANG_CODE = "en";
     std::vector<std::string> COOKIES_URL;
     std::string DEFAULT_THUMB = "https://te.legra.ph/file/3e40a408286d4eda24191.jpg";

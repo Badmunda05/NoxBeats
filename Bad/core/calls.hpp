@@ -1,4 +1,4 @@
-// Port of bad/core/calls.py (TgCall). Playback orchestration on top of voice::Backend.
+// Playback orchestration on top of voice::Backend.
 #pragma once
 #include <map>
 #include <memory>

@@ -27,7 +27,7 @@ std::map<std::string, std::string> read_dotenv(const std::string& path) {
 Config Config::load() {
     auto env = read_dotenv(".env");
     auto get = [&](const char* k, const std::string& def = "") -> std::string {
-        if (const char* e = std::getenv(k)) return e;   // real env wins, like python-dotenv
+        if (const char* e = std::getenv(k)) return e;   // a real environment variable wins over .env
         auto it = env.find(k);
         return it != env.end() ? it->second : def;
     };
@@ -62,6 +62,7 @@ Config Config::load() {
     c.SOURCE_URL = get("SOURCE_URL", c.SOURCE_URL);
     c.AUTO_LEAVE = getb("AUTO_LEAVE", false);
     c.AUTO_END = getb("AUTO_END", false);
+    c.YTDLP_UPDATE = getb("YTDLP_UPDATE", true);
     c.THUMB_GEN = getb("THUMB_GEN", true);
     c.VIDEO_PLAY = getb("VIDEO_PLAY", true);
     c.LANG_CODE = get("LANG_CODE", "en");

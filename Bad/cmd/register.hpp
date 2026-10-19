@@ -1,4 +1,4 @@
-// Plugin registration (python: bad/plugins/__init__.py + importlib in __main__).
+// Command module registration.
 #pragma once
 namespace bot {
 void register_play();

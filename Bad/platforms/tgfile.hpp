@@ -1,4 +1,4 @@
-// Port of bad/core/telegram.py: download audio/video/document replies with a progress message.
+// Download audio/video/document replies with a progress message.
 #pragma once
 #include <atomic>
 #include <map>

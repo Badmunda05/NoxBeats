@@ -1,4 +1,4 @@
-// Port of plugins/play.py + helpers/_play.py (checkUB).
+// /play, /vplay, /playforce, /vplayforce and the assistant availability check.
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -24,7 +24,7 @@ std::string playlist_to_queue(i64 chat, const std::vector<TrackPtr>& tracks) {
         int pos = queue().add(chat, t);
         text += "<b>" + std::to_string(pos) + ".</b> " + util::html_escape(t->title) + "\n";
     }
-    if (text.size() > 1948) text.resize(1948);   // python: text[:1948]
+    if (text.size() > 1948) text.resize(1948);   // keep within Telegram's message limit
     return text + "</blockquote>";
 }
 

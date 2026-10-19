@@ -77,7 +77,7 @@ void sleep_s(int s) {
     for (int i = 0; i < s * 10 && g_running; ++i) std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-// misc.py: track_time
+// track_time
 void track_time() {
     while (g_running) {
         sleep_s(1);
@@ -88,7 +88,7 @@ void track_time() {
     }
 }
 
-// misc.py: update_timer
+// update_timer
 void update_timer(int length = 10, int sleep = 12) {
     while (g_running) {
         sleep_s(sleep);
@@ -126,7 +126,7 @@ void update_timer(int length = 10, int sleep = 12) {
     }
 }
 
-// misc.py: vc_watcher (AUTO_END)
+// vc_watcher (AUTO_END)
 void vc_watcher(int sleep = 15) {
     while (g_running) {
         sleep_s(sleep);
@@ -149,7 +149,7 @@ void vc_watcher(int sleep = 15) {
     }
 }
 
-// misc.py: auto_leave
+// auto_leave
 void auto_leave() {
     while (g_running) {
         sleep_s(3600);

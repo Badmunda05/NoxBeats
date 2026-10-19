@@ -113,7 +113,7 @@ std::string lower(std::string s) {
 }
 
 std::string uptime_string(long s) {
-    // ping.py: "Xdays, Hh:Mm:Ss" - days part is dropped when zero
+    // "Xdays, Hh:Mm:Ss" - the days part is dropped when zero
     long sec = s % 60, min = (s / 60) % 60, hr = (s / 3600) % 24, days = s / 86400;
     std::string o;
     if (days) o = std::to_string(days) + "days, ";
