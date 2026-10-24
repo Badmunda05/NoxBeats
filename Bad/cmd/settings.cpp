@@ -49,6 +49,15 @@ void register_settings() {
 
     on_command({"playmode", "settings"}, Scope::Group, Perm::Everyone, [](const Message& m, const Strings& L) {
         i64 chat = m.chat.id;
+        if (m.command[0] == "playmode" && m.command.size() > 1) {   // /playmode admin|everyone
+            std::string a = util::lower(m.command[1]);
+            bool admins = a == "admin" || a == "admins" || a == "adminonly", all = a == "everyone" || a == "all";
+            if (!admins && !all) { reply(m, L.f("playmode_usage", {L[db().get_play_mode(chat) ? "playmode_admins" : "playmode_everyone"]})); return; }
+            if (!admin_check(m, L)) return;
+            db().set_play_mode(chat, all);   // remove=true -> everyone may /play
+            reply(m, L.f("playmode_set", {L[admins ? "playmode_admins" : "playmode_everyone"], m.from->mention()}));
+            return;
+        }
         c().send_message(chat, L.f("start_settings", {util::html_escape(m.chat.title)}),
                          buttons::settings_markup(L, db().get_play_mode(chat), db().get_cmd_delete(chat), db().get_lang(chat)), m.id);
     });

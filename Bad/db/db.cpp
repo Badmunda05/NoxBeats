@@ -26,7 +26,29 @@ void DB::apply_json(const json& j) {
     bl_chats_ = to_set(get("bl_chats")); bl_users_ = to_set(get("bl_users"));
     sudoers_ = to_set(get("sudoers")); cmd_delete_ = to_set(get("cmd_delete"));
     admin_play_ = to_set(get("admin_play"));
-    logger_ = get("logger").is_boolean() && get("logger").get<bool>();
+    autoplay_ = to_set(get("autoplay"));
+    if (get("ap_lang").is_object()) for (auto& [k, v] : get("ap_lang").items()) ap_lang_[std::stoll(k)] = v.get<std::string>();
+    if (get("ap_mood").is_object()) for (auto& [k, v] : get("ap_mood").items()) ap_mood_[std::stoll(k)] = v.get<std::string>();
+    if (get("cplay").is_object()) for (auto& [k, v] : get("cplay").items()) cplay_[std::stoll(k)] = v.get<i64>();
+    if (get("admin_mode").is_object()) for (auto& [k, v] : get("admin_mode").items()) admin_mode_[std::stoll(k)] = v.get<int>();
+    if (get("clean_mode").is_object()) for (auto& [k, v] : get("clean_mode").items()) clean_mode_[std::stoll(k)] = v.get<int>();
+    if (get("rtmp").is_object())
+        for (auto& [k, v] : get("rtmp").items()) rtmp_[std::stoll(k)] = {v.value("url", ""), v.value("key", "")};
+    if (get("playlists").is_object())
+        for (auto& [k, v] : get("playlists").items()) {
+            if (!v.is_array()) continue;
+            for (const auto& e : v) {
+                PlItem it;
+                it.id = e.value("id", ""); it.title = e.value("title", ""); it.channel = e.value("channel", "");
+                it.duration = e.value("duration", "00:00"); it.duration_sec = e.value("sec", 0);
+                if (!it.id.empty()) playlists_[std::stoll(k)].push_back(it);
+            }
+        }
+    if (get("autoleave").is_number_integer()) autoleave_ = get("autoleave").get<int>();
+    maintenance_ = get("maintenance").is_boolean() && get("maintenance").get<bool>();
+    maint_reason_ = get("maint_reason").is_string() ? get("maint_reason").get<std::string>() : "";
+    if (get("thumb").is_object()) for (auto& [k, v] : get("thumb").items()) thumb_[std::stoll(k)] = v.get<bool>();
+    logger_ = !get("logger").is_boolean() || get("logger").get<bool>();   // logs are on unless /logger off
     if (get("auth").is_object()) for (auto& [k, v] : get("auth").items()) auth_[std::stoll(k)] = to_set(v);
     if (get("assistant").is_object()) for (auto& [k, v] : get("assistant").items()) assistant_[std::stoll(k)] = v.get<int>();
     if (get("lang").is_object()) for (auto& [k, v] : get("lang").items()) lang_[std::stoll(k)] = v.get<std::string>();
@@ -43,6 +65,23 @@ json DB::build_json() const {
     for (auto& [k, v] : auth_) if (!v.empty()) j["auth"][std::to_string(k)] = arr(v);
     for (auto& [k, v] : assistant_) j["assistant"][std::to_string(k)] = v;
     for (auto& [k, v] : lang_) j["lang"][std::to_string(k)] = v;
+    j["cplay"] = json::object(); j["admin_mode"] = json::object(); j["clean_mode"] = json::object(); j["rtmp"] = json::object();
+    for (auto& [k, v] : cplay_) j["cplay"][std::to_string(k)] = v;
+    for (auto& [k, v] : admin_mode_) j["admin_mode"][std::to_string(k)] = v;
+    for (auto& [k, v] : clean_mode_) j["clean_mode"][std::to_string(k)] = v;
+    for (auto& [k, v] : rtmp_) j["rtmp"][std::to_string(k)] = {{"url", v.first}, {"key", v.second}};
+    j["playlists"] = json::object();
+    for (auto& [k, v] : playlists_) {
+        json arr = json::array();
+        for (const auto& it : v) arr.push_back({{"id", it.id}, {"title", it.title}, {"channel", it.channel}, {"duration", it.duration}, {"sec", it.duration_sec}});
+        j["playlists"][std::to_string(k)] = arr;
+    }
+    j["autoleave"] = autoleave_; j["maintenance"] = maintenance_; j["maint_reason"] = maint_reason_;
+    j["autoplay"] = arr(autoplay_);
+    j["ap_lang"] = json::object(); j["ap_mood"] = json::object(); j["thumb"] = json::object();
+    for (auto& [k, v] : ap_lang_) j["ap_lang"][std::to_string(k)] = v;
+    for (auto& [k, v] : ap_mood_) j["ap_mood"][std::to_string(k)] = v;
+    for (auto& [k, v] : thumb_) j["thumb"][std::to_string(k)] = v;
     return j;
 }
 
@@ -158,6 +197,65 @@ bool DB::is_user(i64 id) { LOCK; return users_.count(id) > 0; }
 void DB::add_user(i64 id) { LOCK; if (users_.insert(id).second) save_locked(); }
 void DB::rm_user(i64 id) { LOCK; if (users_.erase(id)) save_locked(); }
 std::vector<i64> DB::get_users() { LOCK; return {users_.begin(), users_.end()}; }
+
+bool DB::get_autoplay(i64 c) { LOCK; return autoplay_.count(c) > 0; }
+void DB::set_autoplay(i64 c, bool on) { LOCK; if (on) autoplay_.insert(c); else autoplay_.erase(c); save_locked(); }
+std::string DB::get_ap_lang(i64 c) { LOCK; auto it = ap_lang_.find(c); return it == ap_lang_.end() ? "auto" : it->second; }
+void DB::set_ap_lang(i64 c, const std::string& v) { LOCK; ap_lang_[c] = v; save_locked(); }
+std::string DB::get_ap_mood(i64 c) { LOCK; auto it = ap_mood_.find(c); return it == ap_mood_.end() ? "any" : it->second; }
+void DB::set_ap_mood(i64 c, const std::string& v) { LOCK; ap_mood_[c] = v; save_locked(); }
+bool DB::get_thumb(i64 c) { LOCK; auto it = thumb_.find(c); return it == thumb_.end() ? config().THUMB_GEN : it->second; }
+void DB::set_thumb(i64 c, bool on) { LOCK; thumb_[c] = on; save_locked(); }
+
+i64 DB::get_cplay(i64 c) { LOCK; auto it = cplay_.find(c); return it == cplay_.end() ? 0 : it->second; }
+void DB::set_cplay(i64 c, i64 ch) { LOCK; if (ch) cplay_[c] = ch; else cplay_.erase(c); save_locked(); }
+int DB::get_admin_mode(i64 c) { LOCK; auto it = admin_mode_.find(c); return it == admin_mode_.end() ? 0 : it->second; }
+void DB::set_admin_mode(i64 c, int m) { LOCK; admin_mode_[c] = m; save_locked(); }
+int DB::get_clean_mode(i64 c) { LOCK; auto it = clean_mode_.find(c); return it == clean_mode_.end() ? 0 : it->second; }
+void DB::set_clean_mode(i64 c, int minutes) { LOCK; if (minutes > 0) clean_mode_[c] = minutes; else clean_mode_.erase(c); save_locked(); }
+bool DB::get_autoleave() { LOCK; return autoleave_ < 0 ? config().AUTO_LEAVE : autoleave_ > 0; }
+void DB::set_autoleave(bool on) { LOCK; autoleave_ = on ? 1 : 0; save_locked(); }
+bool DB::get_maintenance() { LOCK; return maintenance_; }
+std::string DB::get_maint_reason() { LOCK; return maint_reason_; }
+void DB::set_maintenance(bool on, const std::string& reason) { LOCK; maintenance_ = on; maint_reason_ = on ? reason : ""; save_locked(); }
+std::pair<std::string, std::string> DB::get_rtmp(i64 c) { LOCK; auto it = rtmp_.find(c); return it == rtmp_.end() ? std::pair<std::string, std::string>{} : it->second; }
+void DB::set_rtmp(i64 c, const std::string& url, const std::string& key) { LOCK; if (url.empty()) rtmp_.erase(c); else rtmp_[c] = {url, key}; save_locked(); }
+std::vector<PlItem> DB::get_playlist(i64 u) { LOCK; auto it = playlists_.find(u); return it == playlists_.end() ? std::vector<PlItem>{} : it->second; }
+int DB::add_playlist(i64 u, const PlItem& item) {
+    LOCK;
+    auto& v = playlists_[u];
+    for (const auto& x : v) if (x.id == item.id) return 0;
+    if (v.size() >= kPlaylistMax) return -1;
+    v.push_back(item);
+    save_locked();
+    return 1;
+}
+bool DB::remove_playlist(i64 u, size_t pos) {
+    LOCK;
+    auto it = playlists_.find(u);
+    if (it == playlists_.end() || pos < 1 || pos > it->second.size()) return false;
+    it->second.erase(it->second.begin() + (pos - 1));
+    if (it->second.empty()) playlists_.erase(it);
+    save_locked();
+    return true;
+}
+size_t DB::clear_playlist(i64 u) {
+    LOCK;
+    auto it = playlists_.find(u);
+    if (it == playlists_.end()) return 0;
+    size_t n = it->second.size();
+    playlists_.erase(it);
+    save_locked();
+    return n;
+}
+int DB::get_bass(i64 c) { LOCK; auto it = bass_.find(c); return it == bass_.end() ? 0 : it->second; }
+void DB::set_bass(i64 c, int l) { LOCK; if (l <= 0) bass_.erase(c); else bass_[c] = l > 100 ? 100 : l; }
+double DB::get_speed(i64 c) { LOCK; auto it = speed_.find(c); return it == speed_.end() ? 1.0 : it->second; }
+void DB::set_speed(i64 c, double s) { LOCK; if (s == 1.0) speed_.erase(c); else speed_[c] = s; }
+bool DB::get_muted(i64 c) { LOCK; return muted_.count(c) > 0; }
+void DB::set_muted(i64 c, bool m) { LOCK; if (m) muted_.insert(c); else muted_.erase(c); }
+bool DB::get_vc_channel(i64 c) { LOCK; return vc_channel_.count(c) > 0; }
+void DB::set_vc_channel(i64 c, bool v) { LOCK; if (v) vc_channel_.insert(c); else vc_channel_.erase(c); }
 
 bool DB::get_cmd_delete(i64 c) { LOCK; return cmd_delete_.count(c) > 0; }
 void DB::set_cmd_delete(i64 c, bool v) { LOCK; if (v) cmd_delete_.insert(c); else cmd_delete_.erase(c); save_locked(); }

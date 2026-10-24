@@ -42,7 +42,7 @@
     "help_blist": "<u><b>黑名单命令: </b></u>\n<i>黑名单中的聊天和用户无法使用该机器人。</i>\n\n/blacklist [chat_id|user_id]: 将聊天/用户添加到黑名单。\n/unblacklist [chat_id|user_id]: 从黑名单中删除聊天/用户",
     "help_lang": "<u><b>语言命令: </b></u>\n<i>此机器人支持多种语言。</i>\n\n/lang: 更改机器人的语言。",
     "help_ping": "<u><b>Ping 命令: </b></u>\n\n/help: 显示机器人的帮助菜单。\n\n/ping: 检查机器人的 ping 和内存使用情况。\n\n/start: 启动机器人。\n\n/sudolist: 显示机器人的 sudo 用户列表。",
-    "help_play": "<u><b>播放命令: </b></u>\n<i>您可以使用以下命令在视频聊天中播放音乐。</i>\n\n/play [歌曲名称/youtube url/回复音频]: 在视频聊天中播放音乐。\n/vplay [歌曲名称/youtube url/回复视频]: 在视频聊天中播放音乐视频。\n-f: 强制在视频聊天中播放音乐。\n-v: 在视频聊天中播放音乐视频。\n\n<b>示例: </b> <code>/play -f -v attention</code>",
+    "help_play": "<u><b>播放命令: </b></u>\n<i>您可以使用以下命令在视频聊天中播放音乐。</i>\n\n/play [歌曲名称/youtube url/回复音频]: 在视频聊天中播放音乐。\n/vplay [歌曲名称/youtube url/回复视频]: 在视频聊天中播放音乐视频。\n-f: 强制在视频聊天中播放音乐。\n-v: 在视频聊天中播放音乐视频。\n\n<b>示例: </b> <code>/play -f -v attention</code>\n\n/autoplay [on|off|lang|mood]: Keep related songs playing when the queue ends.\n/thumbnail [on|off]: Show or hide the thumbnail on the player card.",
     "help_queue": "<u><b>队列命令: </b></u>\n\n/queue: 显示当前排队的曲目。",
     "help_stats": "<u><b>统计命令: </b></u>\n\n/stats: 显示机器人的统计信息。",
     "help_sudo": "<b><u>Sudo 命令: </u></b>\n\n/ac: 显示活动通话计数。\n\n/activevc: 显示活动通话列表。\n\n/broadcast [回复消息]: 向所有聊天广播消息。\n-nochat: 从广播中排除群组。\n-user: 在广播中包括用户。\n-copy: 从广播消息中删除转发的标签。\n<b>示例: </b> <code>/broadcast -user -copy</code>\n\n/eval: 执行给定的代码。\n\n/logs: 发送日志文件。\n\n/logger [on|off]: 启用/禁用记录器。\n\n/restart: 重新启动机器人。\n\n/addsudo: 将用户添加到 sudo 用户列表。\n/rmsudo: 从 sudo 用户列表中删除用户。",

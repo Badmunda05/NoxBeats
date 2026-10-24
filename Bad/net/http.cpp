@@ -123,7 +123,13 @@ Response get(const std::string& url, int timeout) {
 
 bool download(const std::string& url, const std::string& path, const std::function<void(i64, i64)>& progress,
               const std::atomic<bool>& cancel, int timeout) {
-    CURL* h = handle();
+    // A dedicated handle: the progress callback may itself make HTTP calls (editing the status
+    // message), and those reuse the thread's shared handle. Resetting a handle that is in the
+    // middle of a transfer crashes, so the download must not share it.
+    handle();   // makes sure curl_global_init has run
+    struct Own { CURL* h = curl_easy_init(); ~Own() { if (h) curl_easy_cleanup(h); } } own;
+    CURL* h = own.h;
+    if (!h) return false;
     FILE* f = std::fopen(path.c_str(), "wb");
     if (!f) return false;
     std::string err(CURL_ERROR_SIZE, '\0');

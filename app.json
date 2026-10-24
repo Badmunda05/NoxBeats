@@ -39,11 +39,39 @@
             "required": true
         },
         "SESSION2": {
-            "description": "Optional 2nd assistant session",
+            "description": "Optional assistant session #2",
             "required": false
         },
         "SESSION3": {
-            "description": "Optional 3rd assistant session",
+            "description": "Optional assistant session #3",
+            "required": false
+        },
+        "SESSION4": {
+            "description": "Optional assistant session #4",
+            "required": false
+        },
+        "SESSION5": {
+            "description": "Optional assistant session #5",
+            "required": false
+        },
+        "SESSION6": {
+            "description": "Optional assistant session #6",
+            "required": false
+        },
+        "SESSION7": {
+            "description": "Optional assistant session #7",
+            "required": false
+        },
+        "SESSION8": {
+            "description": "Optional assistant session #8",
+            "required": false
+        },
+        "SESSION9": {
+            "description": "Optional assistant session #9",
+            "required": false
+        },
+        "SESSION10": {
+            "description": "Optional assistant session #10",
             "required": false
         },
         "SESSION_TYPE": {
@@ -94,6 +122,18 @@
             "description": "Link behind the Source button",
             "required": false,
             "value": "https://github.com/Badmunda05/NoxBeats/fork"
+        },
+        "SPOTIFY_CLIENT_ID": {
+            "description": "Optional Spotify app client id (developer.spotify.com). Spotify links work without it, but the API is more reliable",
+            "required": false
+        },
+        "SPOTIFY_CLIENT_SECRET": {
+            "description": "Optional Spotify app client secret",
+            "required": false
+        },
+        "USE_COOKIES": {
+            "description": "True: fetch cookies and try yt-dlp with cookies first, the download API is the fallback. False: skip cookies and use the download API (API_URL + API_KEY) directly for a faster start. Default: False when API_KEY is set, otherwise True",
+            "required": false
         },
         "COOKIES_URL": {
             "description": "Optional batbin.me cookie file links (space separated) for the yt-dlp fallback",

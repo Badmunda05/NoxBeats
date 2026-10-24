@@ -1,6 +1,7 @@
 // Callbacks for the player controls and download cancel. Help/settings/lang callbacks live in settings.cpp.
 #include <regex>
 #include "common.hpp"
+#include "../core/autoplay.hpp"
 #include "../core/calls.hpp"
 #include "../core/queue.hpp"
 #include "../core/util.hpp"
@@ -34,6 +35,22 @@ void register_play_cb() {
         std::string user = q.from.mention();
         i64 mid = q.message.id;
 
+        if (action == "autoplay" || action == "thumb") {   // per-chat switches on the player card
+            bool on;
+            if (action == "autoplay") {
+                on = !db().get_autoplay(chat);
+                db().set_autoplay(chat, on);
+                if (on) autoplay().on_track_start(chat, queue().get_current(chat));
+                else autoplay().reset(chat);
+            } else {
+                on = !db().get_thumb(chat);
+                db().set_thumb(chat, on);
+            }
+            c().answer_callback(q.id, L[action == "autoplay" ? (on ? "autoplay_btn_on" : "autoplay_btn_off")
+                                                              : (on ? "thumb_btn_on" : "thumb_btn_off")]);
+            try { c().edit_markup(q.message.chat.id, mid, buttons::controls(chat)); } catch (...) {}
+            return;
+        }
         if (!db().get_call(chat)) { c().answer_callback(q.id, L["not_playing"], true); return; }
         if (action == "status") { c().answer_callback(q.id); return; }
         c().answer_callback(q.id, L["processing"], true);

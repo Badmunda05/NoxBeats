@@ -70,6 +70,46 @@ public:
     std::string get_lang(i64 chat);
     void set_lang(i64 chat, const std::string& code);
 
+    // --- autoplay + thumbnail (per chat, persisted) ---
+    bool get_autoplay(i64 chat);
+    void set_autoplay(i64 chat, bool on);
+    std::string get_ap_lang(i64 chat);                 // "auto" by default
+    void set_ap_lang(i64 chat, const std::string& v);
+    std::string get_ap_mood(i64 chat);                 // "any" by default
+    void set_ap_mood(i64 chat, const std::string& v);
+    bool get_thumb(i64 chat);                          // default: THUMB_GEN
+    void set_thumb(i64 chat, bool on);
+
+    // --- more per-chat / global settings (persisted) ---
+    i64 get_cplay(i64 chat);                           // linked channel for channel play, 0 = none
+    void set_cplay(i64 chat, i64 channel);
+    int get_admin_mode(i64 chat);                      // who may control playback: 0 admins+authorized (default), 1 admins only, 2 everyone
+    void set_admin_mode(i64 chat, int mode);
+    int get_clean_mode(i64 chat);                      // minutes after which the bot deletes its service messages, 0 = off
+    void set_clean_mode(i64 chat, int minutes);
+    bool get_autoleave();                              // default: AUTO_LEAVE
+    void set_autoleave(bool on);
+    bool get_maintenance();
+    std::string get_maint_reason();
+    void set_maintenance(bool on, const std::string& reason = "");
+    std::pair<std::string, std::string> get_rtmp(i64 chat);   // (url, key); empty when not configured
+    void set_rtmp(i64 chat, const std::string& url, const std::string& key);
+    // --- runtime only ---
+    // ---- per-user playlists (kept in the database, shared by every chat the user plays in) ----
+    static constexpr size_t kPlaylistMax = 100;
+    std::vector<PlItem> get_playlist(i64 user);
+    int add_playlist(i64 user, const PlItem& item);       // 1 = added, 0 = already there, -1 = playlist full
+    bool remove_playlist(i64 user, size_t pos);           // pos is 1-based
+    size_t clear_playlist(i64 user);
+    int get_bass(i64 chat);              // 0..100, 0 = off (per running session)
+    void set_bass(i64 chat, int level);
+    double get_speed(i64 chat);
+    void set_speed(i64 chat, double s);
+    bool get_muted(i64 chat);
+    void set_muted(i64 chat, bool m);
+    bool get_vc_channel(i64 chat);                     // this chat's session runs in the linked channel's voice chat
+    void set_vc_channel(i64 chat, bool v);
+
     bool is_logger();
     void set_logger(bool v);
 
@@ -94,7 +134,20 @@ private:
     std::map<i64, int> assistant_;
     std::set<i64> bl_chats_, bl_users_, chats_, users_, sudoers_, cmd_delete_, admin_play_;
     std::map<i64, std::string> lang_;
-    bool logger_ = false;
+    std::set<i64> autoplay_;
+    std::map<i64, std::string> ap_lang_, ap_mood_;
+    std::map<i64, bool> thumb_;
+    std::map<i64, i64> cplay_;
+    std::map<i64, int> admin_mode_, clean_mode_;
+    std::map<i64, std::pair<std::string, std::string>> rtmp_;
+    int autoleave_ = -1;                               // -1 = follow AUTO_LEAVE
+    bool maintenance_ = false;
+    std::string maint_reason_;
+    std::map<i64, double> speed_;
+    std::map<i64, int> bass_;
+    std::map<i64, std::vector<PlItem>> playlists_;
+    std::set<i64> muted_, vc_channel_;
+    bool logger_ = true;
 };
 
 DB& db();

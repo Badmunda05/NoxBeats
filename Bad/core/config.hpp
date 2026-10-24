@@ -14,7 +14,8 @@ struct Config {
     i64 LOGGER_ID = 0, OWNER_ID = 0;
     int DURATION_LIMIT = 60 * 60;           // seconds
     int QUEUE_LIMIT = 20, PLAYLIST_LIMIT = 20;
-    std::vector<std::string> SESSIONS;      // SESSION / SESSION2 / SESSION3 / STRING_SESSION(S): string sessions
+    static constexpr int kMaxSessions = 10;
+    std::vector<std::string> SESSIONS;      // SESSION / SESSION2 .. SESSION10 / STRING_SESSION(S): string sessions
     std::string SESSION_TYPE = "pyrogram";  // pyrogram | telethon
     std::string BOT_API_URL = "https://api.telegram.org";   // local Bot API server => 2 GB downloads
     std::string API_URL = "https://api.yourdomain.site";   // download API (YouTube -> mp3/mp4); used when API_KEY is set
@@ -26,6 +27,8 @@ struct Config {
     bool YTDLP_UPDATE = true;               // run `yt-dlp -U` once at start
     std::string LANG_CODE = "en";
     std::vector<std::string> COOKIES_URL;
+    bool USE_COOKIES = true;                  // true: cookies + yt-dlp first, API as fallback; false: API first, no cookies
+    std::string SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET;   // optional: Spotify Web API (client credentials)
     std::string DEFAULT_THUMB = "https://te.legra.ph/file/3e40a408286d4eda24191.jpg";
     std::string PING_IMG = "https://files.catbox.moe/haagg2.png";
     std::string START_IMG = "https://files.catbox.moe/zvziwk.jpg";

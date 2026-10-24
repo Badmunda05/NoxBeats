@@ -1,5 +1,6 @@
 #include "buttons.hpp"
 #include "../core/config.hpp"
+#include "../db/db.hpp"
 #include "../tg/client.hpp"
 
 namespace bot::buttons {
@@ -17,6 +18,13 @@ Keyboard controls(i64 chat, const std::string& status, const std::string& timer,
         kb.push_back({cb("▷", "controls resume " + c), cb("II", "controls pause " + c),
                       cb("⥁", "controls replay " + c), cb("‣‣I", "controls skip " + c),
                       cb("▢", "controls stop " + c)});
+    if (!remove) {
+        // per-chat switches: show the current state, tap to flip
+        const Strings& L = lang().get(db().get_lang(chat));
+        bool ap = db().get_autoplay(chat), th = db().get_thumb(chat);
+        kb.push_back({cb(L[ap ? "btn_autoplay_on" : "btn_autoplay_off"], "controls autoplay " + c),
+                      cb(L[th ? "btn_thumb_on" : "btn_thumb_off"], "controls thumb " + c)});
+    }
     return kb;
 }
 

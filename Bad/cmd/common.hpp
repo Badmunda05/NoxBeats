@@ -45,9 +45,13 @@ bool can_manage_vc(const CallbackQuery& q, const Strings& L);
 std::optional<User> extract_user(const Message& m);
 void play_log(const Message& m, const std::string& link, const std::string& title, const std::string& duration, const Strings& L);
 void send_log(const Message& m, const Strings& L, bool chat = false);
+// The bot was removed from / blocked in a chat: tidy up and tell the log chat.
+void handle_bot_member(const BotMemberChange& c);
 std::string msg_link(i64 chat, i64 mid);
 void sudo_add(i64 id);
 void sudo_del(i64 id);
+// Makes sure the assistant account is in the chat that hosts the voice chat (`target`, 0 = this chat); false after replying.
+bool ensure_assistant(const Message& m, const Strings& L, i64 target = 0);
 // Reply helper: sends a reply and swallows nothing (callers are wrapped by the router).
 Message reply(const Message& m, const std::string& text, const Keyboard& kb = {});
 

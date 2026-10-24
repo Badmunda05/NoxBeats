@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
     // Bot.boot(): the bot must be able to post in (and be admin of) the log group
     if (!mock) {
         try {
-            client->send_message(config().LOGGER_ID, "Bot Started");
+            client->send_message(config().LOGGER_ID, "ʙᴏᴛ ꜱᴛᴀʀᴛᴇᴅ");
             auto st = client->member_status(config().LOGGER_ID, client->me().id);
             if (st != tg::MemberStatus::Admin && st != tg::MemberStatus::Owner) {
                 std::cerr << "Please promote the bot as an admin in logger group.\n";
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     std::thread joiner, updater;
     if (!mock) {
         for (int i = 1; i <= client->assistants(); ++i)
-            client->assistant_send(i, config().LOGGER_ID, client->assistants() > 1 ? "Assistant " + std::to_string(i) + " started" : "Assistant started");
+            client->assistant_send(i, config().LOGGER_ID, client->assistants() > 1 ? "Assistant " + std::to_string(i) + " started" : "ᴀꜱꜱɪꜱᴛᴀɴᴛ ꜱᴛᴀʀᴛᴇᴅ");
         // keep yt-dlp current (YouTube changes often); needs write access to the yt-dlp binary, otherwise it only logs
         if (config().YTDLP_UPDATE) {
             updater = std::thread([] {
@@ -130,13 +130,14 @@ int main(int argc, char** argv) {
     bad().boot();
     register_all();
     log::info("Loaded " + std::to_string(module_count()) + " modules.");
-    if (!config().COOKIES_URL.empty()) yt().save_cookies(config().COOKIES_URL);
+    if (config().USE_COOKIES && !config().COOKIES_URL.empty()) yt().save_cookies(config().COOKIES_URL);
     load_runtime_sets();
     log::info("Loaded " + std::to_string(sudo_count()) + " sudo users.");
     start_background_tasks();
 
     ThreadPool pool(16);
     client->on_message = [&](const Message& m) { pool.submit([m] { dispatch_message(m); }); };
+    client->on_bot_member = [&](const BotMemberChange& c) { pool.submit([c] { handle_bot_member(c); }); };
     client->on_callback = [&](const CallbackQuery& q) { pool.submit([q] { dispatch_callback(q); }); };
 
     std::signal(SIGINT, on_signal);

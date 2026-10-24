@@ -79,6 +79,7 @@ public:
     // --- update loop ---
     std::function<void(const Message&)> on_message;
     std::function<void(const CallbackQuery&)> on_callback;
+    std::function<void(const BotMemberChange&)> on_bot_member;
     virtual void run() = 0;        // blocks until stop()
     virtual void stop() = 0;
 };

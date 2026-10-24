@@ -29,6 +29,8 @@ public:
     explicit Strings(std::map<std::string, std::string> t = {}) : t_(std::move(t)) {}
     // Missing keys fall back to the key itself so a broken locale never crashes a handler.
     const std::string& operator[](const std::string& k) const;
+    // Adds the keys this table lacks from `base` (used so a new string never shows up as its raw key).
+    void fill_missing(const Strings& base) { for (const auto& [k, v] : base.t_) t_.emplace(k, v); }
     std::string f(const std::string& k, const std::vector<Arg>& a) const { return fmt((*this)[k], a); }
 private:
     std::map<std::string, std::string> t_;

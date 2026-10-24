@@ -7,13 +7,15 @@
 namespace bot::voice {
 class MockBackend : public Backend {
 public:
-    struct Call { std::string op; int idx; i64 chat; std::string path; bool video; int seek; };
+    struct Call { std::string op; int idx; i64 chat; std::string path; bool video; int seek; double speed = 1.0; i64 peer = 0; int bass = 0; };
     std::vector<Call> calls;
     std::mutex mu;
     int participants_n = 2;
     bool has_vc = true;                      // false => NoActiveGroupCall
 
-    void play(int idx, i64 chat, const std::string& path, bool video, int seek) override;
+    void play(int idx, i64 chat, const std::string& path, bool video, int seek, double speed = 1.0, i64 peer = 0, int bass = 0) override;
+    void mute(int idx, i64 chat) override { rec({"mute", idx, chat, "", false, 0}); }
+    void unmute(int idx, i64 chat) override { rec({"unmute", idx, chat, "", false, 0}); }
     void pause(int idx, i64 chat) override { rec({"pause", idx, chat, "", false, 0}); }
     void resume(int idx, i64 chat) override { rec({"resume", idx, chat, "", false, 0}); }
     void leave(int idx, i64 chat) override { rec({"leave", idx, chat, "", false, 0}); }

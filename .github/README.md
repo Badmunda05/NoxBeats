@@ -19,7 +19,11 @@
 
 - Play audio or video from a song name, link, playlist, or replied media.
 - Queue, pause, resume, skip, stop, seek and loop controls.
+- Autoplay (related songs when the queue ends) and a per-chat thumbnail switch.
+- Personal playlists (`/addplaylist`, `/playlist`, `/rmplaylist`, `/playplaylist`).
+- Spotify, Apple Music, JioSaavn and SoundCloud links, m3u8 streams, channel play (`/cplay`), speed/jump/mute, queue tools and RTMP streaming.
 - Admin tools, authorized users and per-chat settings.
+- Up to 10 assistant accounts (`SESSION` … `SESSION10`) to spread the voice chats.
 - Multiple interface languages.
 - MongoDB-backed settings that persist across restarts.
 - Optional download API or yt-dlp support.
@@ -35,6 +39,8 @@
 | `/skip` | Skip the current track |
 | `/stop` | Stop playback and clear the queue |
 | `/loop` | Toggle track looping |
+| `/autoplay` | Autoplay on/off, language and mood |
+| `/thumbnail` | Thumbnail on/off |
 | `/lang` | Change language |
 | `/help` / `/start` | Open the help menu |
 
@@ -81,7 +87,7 @@ Required environment variables:
 | `OWNER_ID` | Bot owner's Telegram user ID |
 | `MONGO_DB_URI` | MongoDB connection URI |
 
-Optional variables include `SESSION2`, `SESSION3`, `SESSION_TYPE`, `API_URL`, `API_KEY`, `COOKIES_URL`, `DURATION_LIMIT`, `QUEUE_LIMIT`, `PLAYLIST_LIMIT`, `AUTO_LEAVE`, `AUTO_END`, `THUMB_GEN`, `VIDEO_PLAY`, `LANG_CODE`, `SUPPORT_CHANNEL`, `SUPPORT_CHAT` and `SOURCE_URL`.
+Optional variables include `SESSION2` … `SESSION10`, `SESSION_TYPE`, `API_URL`, `API_KEY`, `COOKIES_URL`, `USE_COOKIES`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `DURATION_LIMIT`, `QUEUE_LIMIT`, `PLAYLIST_LIMIT`, `AUTO_LEAVE`, `AUTO_END`, `THUMB_GEN`, `VIDEO_PLAY`, `LANG_CODE`, `SUPPORT_CHANNEL`, `SUPPORT_CHAT` and `SOURCE_URL`.
 
 Keep credentials and session strings private. Never commit your `.env` file.
 

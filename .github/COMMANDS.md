@@ -11,7 +11,7 @@
 
 ## Contents
 
-[Basics](#basics) · [Play music](#-play-music) · [Control playback](#-control-playback) · [Authorized users](#-authorized-users) · [Settings and menus](#-settings-and-menus) · [Information](#-information) · [Sudo commands](#-sudo-commands) · [Owner commands](#-owner-commands)
+[Basics](#basics) · [Play music](#-play-music) · [Control playback](#-control-playback) · [Autoplay and thumbnail](#-autoplay-and-thumbnail) · [Authorized users](#-authorized-users) · [Settings and menus](#-settings-and-menus) · [Information](#-information) · [Sudo commands](#-sudo-commands) · [Owner commands](#-owner-commands)
 
 ## Basics
 
@@ -103,6 +103,88 @@ All of these need **Admin** access, except `/queue`.
 - `/seek` and `/seekback` need at least **10 seconds**, and only work on tracks with a known length.
 - The loop count is limited to 10.
 - The player message also has inline buttons for pause, resume, skip, stop and replay. They follow the same access rules.
+
+## 🧰 Queue tools and extras
+
+Need **Admin** (or whatever `/adminmode` allows) unless noted.
+
+| Command | What it does |
+| :-- | :-- |
+| `/clear` / `/restore` | Empty the waiting queue / bring the last cleared queue back |
+| `/remove [n]` | Remove the track at position `n` of `/queue` |
+| `/move [from] [to]` | Reorder two waiting tracks |
+| `/shuffle` | Shuffle the waiting tracks |
+| `/pos` | Current position, length and speed |
+| `/jump [time]` | Jump to an exact time (`90` or `1:30`) |
+| `/speed [0.5-2.0]` | Change the playback speed (aliases `/setspeed`, `/speedup`) |
+| `/bass [0-100\|on\|off]` | Bass boost for the running session (1 is already audible, 100 is very heavy) (also `/cbass` for channels); resets when the session ends |
+| `/mute` / `/unmute` | Mute or unmute the stream without leaving the chat |
+| `/replay` | Play the current track again |
+| `/player` | Send the player card again |
+| `/fplay`, `/fvplay` | Short names for force play / force video play |
+
+## 🎼 Personal playlists
+
+Every user has their own playlist, saved in the database (up to 100 songs). It works in any chat and in private.
+
+| Command | What it does |
+| :-- | :-- |
+| `/addplaylist [song name or link]` | Save a song. With no argument it saves the song that is playing now. Spotify, Apple Music, JioSaavn, SoundCloud and YouTube playlist links save all their songs (up to `PLAYLIST_LIMIT`) |
+| `/playlist` | Show your playlist (also `/myplaylist`, `/playlists`) |
+| `/rmplaylist [number \| name \| all]` | Remove a song, or everything (also `/clearplaylist`) |
+| `/playplaylist [-s] [-v] [-f]` | Queue your playlist in the group. `-s` shuffles, `-v` plays video, `-f` forces it first |
+
+## 🌐 Supported sources
+
+YouTube (search, links, playlists), Spotify, Apple Music, JioSaavn, SoundCloud, direct `.m3u8` / stream links, and Telegram audio or video files. Spotify, Apple Music, JioSaavn and SoundCloud links are read for their title and artist, and the audio is played from the best YouTube match. Albums and playlists add up to `PLAYLIST_LIMIT` songs.
+
+## 🔗 Spotify
+
+`/play` and `/vplay` accept `open.spotify.com` track, album and playlist links. The bot reads the title and artists from Spotify and plays the best match from YouTube. Albums and playlists add up to `PLAYLIST_LIMIT` tracks. Setting `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` (free, from developer.spotify.com) makes this more reliable; without them the bot falls back to Spotify's public embed page.
+
+## 📺 Channel play
+
+1. In the group, an admin of both the group and the channel sends `/channelplay [channel id or @username]`. The bot and the assistant must be in the channel.
+2. Use the `c` commands: `/cplay`, `/cvplay`, `/cfplay`, `/cpause`, `/cresume`, `/cskip`, `/cstop`, `/cqueue`, `/cseek`, `/cspeed`, `/cmute` ... They are the normal commands, but they play in the channel's video chat.
+3. `/channelplay off` unlinks it. `/userbot` (`/cjoin` for the channel) asks the assistant to join.
+
+A chat plays in either the group's video chat or the channel's at one time.
+
+## 🗂️ Chat settings
+
+| Command | What it does |
+| :-- | :-- |
+| `/adminmode [admins\|auth\|everyone]` | Who may control playback |
+| `/playmode [admin\|everyone]` | Who may start playback |
+| `/cmddelete [on\|off]` | Delete command messages |
+| `/cleanmode [on\|off\|minutes]` | Delete the bot's own messages after a while (the player card stays) |
+| `/nothumb [on\|off]` | Hide the player thumbnail |
+
+## 📡 RTMP streaming
+
+1. In the bot's **private chat**: `/setrtmp [chat id] [rtmp://host/app] [stream key]`. You must be an admin of that chat. `/setrtmp [chat id] off` removes it.
+2. In the group: `/stream [song or url]` pushes the video to that RTMP target (for example a Telegram live stream or any RTMP server). `/streamstop` stops it, `/streamstatus` shows it.
+
+The stream key is kept in the bot's database and is never printed back. Needs `ffmpeg` and enough CPU for libx264.
+
+## 🧪 Bot tools
+
+The bot sends logs to `LOGGER_ID` (turn them off with `/logger off`): new chats and users, every play request (song, group id and name, who asked), and when the bot is removed from a group or blocked by a user.
+
+Sudo: `/maintenance [on|off] [reason]`, `/autoleave [on|off]`, `/json`, `/speedtest`, `/blacklisted`. Everyone: `/bug [text]` (sent to the logger chat) and `/privacy`.
+
+## ♬ Autoplay and thumbnail
+
+| Command | Access | What it does |
+| :-- | :-: | :-- |
+| `/autoplay` | Everyone | Shows whether autoplay is on, plus its language and mood |
+| `/autoplay on` / `off` | Admin or authorized | When the queue ends, related songs keep playing |
+| `/autoplay lang <language>` | Admin or authorized | Prefer one language, for example `hindi` or `punjabi`. `auto` removes the preference |
+| `/autoplay mood <mood>` | Admin or authorized | Prefer one mood, for example `sad` or `party`. `any` removes the preference |
+| `/thumbnail` | Everyone | Shows whether the thumbnail is on |
+| `/thumbnail on` / `off` | Admin or authorized | Show the thumbnail on the player card, or text only. Applies to the next songs |
+
+The player card has two switches for the same settings: **Autoplay | On/Off** and **Thumb | On/Off**. Autoplay never repeats a recent song and skips mixes, jukeboxes, shorts and live streams. Both settings are saved per chat.
 
 ## 👮 Authorized users
 

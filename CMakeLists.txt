@@ -54,6 +54,10 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/tests/test_flow.cpp)
   target_include_directories(adapter_tests PRIVATE tests)
   add_test(NAME adapters COMMAND adapter_tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
+  add_executable(autoplay_tests tests/test_autoplay.cpp)
+  target_link_libraries(autoplay_tests PRIVATE botcore)
+  add_test(NAME autoplay COMMAND autoplay_tests WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
   add_executable(mtp_tests tests/test_mtp.cpp)
   target_link_libraries(mtp_tests PRIVATE botcore)
   target_include_directories(mtp_tests PRIVATE tests)

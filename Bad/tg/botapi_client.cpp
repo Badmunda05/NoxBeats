@@ -414,6 +414,14 @@ void BotApiClient::handle_update(const json& u) {
     try {
         if (u.contains("message") && on_message) {
             on_message(parse_message(u["message"]));
+        } else if (u.contains("my_chat_member") && on_bot_member) {
+            const json& c = u["my_chat_member"];
+            BotMemberChange ch;
+            ch.chat = parse_chat(c["chat"]);
+            if (c.contains("from")) ch.by = parse_user(c["from"]);
+            ch.old_status = c.value("old_chat_member", json::object()).value("status", "");
+            ch.new_status = c.value("new_chat_member", json::object()).value("status", "");
+            on_bot_member(ch);
         } else if (u.contains("callback_query") && on_callback) {
             const json& c = u["callback_query"];
             CallbackQuery q;
@@ -438,7 +446,7 @@ void BotApiClient::run() {
     while (!stop_) {
         try {
             json r = call("getUpdates", {{"offset", offset}, {"timeout", 25},
-                                         {"allowed_updates", json::array({"message", "callback_query"})}});
+                                         {"allowed_updates", json::array({"message", "callback_query", "my_chat_member"})}});
             backoff = 1;
             for (const auto& u : r) {
                 offset = std::max<i64>(offset, u.value("update_id", 0LL) + 1);

@@ -48,10 +48,13 @@ Config Config::load() {
     c.DURATION_LIMIT = static_cast<int>(geti("DURATION_LIMIT", 60) * 60);
     c.QUEUE_LIMIT = static_cast<int>(geti("QUEUE_LIMIT", 20));
     c.PLAYLIST_LIMIT = static_cast<int>(geti("PLAYLIST_LIMIT", 20));
-    for (const char* k : {"SESSION", "STRING_SESSION", "STRING_SESSIONS", "SESSION2", "SESSION3"})
-        for (const auto& s : util::split_ws(get(k)))          // strings never contain spaces
+    // SESSION, SESSION2 ... SESSION10 (+ STRING_SESSION(S)); more assistants spread the voice chats over more accounts
+    std::vector<std::string> session_keys = {"SESSION", "STRING_SESSION", "STRING_SESSIONS"};
+    for (int i = 2; i <= Config::kMaxSessions; ++i) session_keys.push_back("SESSION" + std::to_string(i));
+    for (const auto& k : session_keys)
+        for (const auto& s : util::split_ws(get(k.c_str())))   // strings never contain spaces
             if (!util::contains(c.SESSIONS, s)) c.SESSIONS.push_back(s);
-    if (c.SESSIONS.size() > 3) c.SESSIONS.resize(3);
+    if (static_cast<int>(c.SESSIONS.size()) > Config::kMaxSessions) c.SESSIONS.resize(Config::kMaxSessions);
     c.SESSION_TYPE = util::lower(get("SESSION_TYPE", c.SESSION_TYPE));
     c.BOT_API_URL = get("BOT_API_URL", c.BOT_API_URL);
     c.API_URL = get("API_URL", c.API_URL);
@@ -66,6 +69,12 @@ Config Config::load() {
     c.THUMB_GEN = getb("THUMB_GEN", true);
     c.VIDEO_PLAY = getb("VIDEO_PLAY", true);
     c.LANG_CODE = get("LANG_CODE", "en");
+    {   // default: API first when a download API is configured, otherwise cookies/yt-dlp
+        const bool api_set = !get("API_KEY").empty();
+        c.USE_COOKIES = getb("USE_COOKIES", !api_set);
+    }
+    c.SPOTIFY_CLIENT_ID = get("SPOTIFY_CLIENT_ID");
+    c.SPOTIFY_CLIENT_SECRET = get("SPOTIFY_CLIENT_SECRET");
     for (const auto& u : util::split_ws(get("COOKIES_URL")))
         if (u.find("batbin.me") != std::string::npos) c.COOKIES_URL.push_back(u);
     c.DEFAULT_THUMB = get("DEFAULT_THUMB", c.DEFAULT_THUMB);

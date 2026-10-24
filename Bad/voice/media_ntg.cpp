@@ -69,15 +69,23 @@ public:
         if (out.empty()) throw MediaError(-1, "ntg_create returned no params");
         return out;
     }
-    void set_source(i64 chat, const std::string& cmd) override {
+    void set_source(i64 chat, const std::string& cmd, const std::string& video_cmd) override {
         ntg_audio_description_struct a{};
         a.mediaSource = NTG_SHELL;
         a.input = const_cast<char*>(cmd.c_str());
         a.sampleRate = 96000;
         a.channelCount = 2;
         a.keepOpen = false;
+        ntg_video_description_struct v{};
+        v.mediaSource = NTG_SHELL;
+        v.input = const_cast<char*>(video_cmd.c_str());
+        v.width = kVideoWidth;
+        v.height = kVideoHeight;
+        v.fps = kVideoFps;
+        v.keepOpen = false;
         ntg_media_description_struct d{};
         d.microphone = &a;
+        if (!video_cmd.empty()) d.camera = &v;
         run("set_stream_sources", [&](ntg_async_struct f) { return ntg_set_stream_sources(h_, chat, NTG_STREAM_CAPTURE, d, f); });
     }
     void connect(i64 chat, const std::string& params) override {
@@ -92,6 +100,8 @@ public:
         if (!ok) throw MediaError(-1, "voice connection timeout");
         if (s != NTG_STATE_CONNECTED) throw MediaError(-302, "voice connection failed");
     }
+    void mute(i64 chat) override { run("mute", [&](ntg_async_struct f) { return ntg_mute(h_, chat, f); }); }
+    void unmute(i64 chat) override { run("unmute", [&](ntg_async_struct f) { return ntg_unmute(h_, chat, f); }); }
     void pause(i64 chat) override { run("pause", [&](ntg_async_struct f) { return ntg_pause(h_, chat, f); }); }
     void resume(i64 chat) override { run("resume", [&](ntg_async_struct f) { return ntg_resume(h_, chat, f); }); }
     void stop(i64 chat) override {

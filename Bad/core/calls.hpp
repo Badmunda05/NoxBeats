@@ -16,6 +16,8 @@ public:
     void pause(i64 chat);
     void resume(i64 chat);
     void stop(i64 chat);
+    void mute(i64 chat);
+    void unmute(i64 chat);
     // `mid` is the status message that will be turned into the "Started streaming" card.
     void play_media(i64 chat, i64 mid, const TrackPtr& media, int seek_time = 0);
     void replay(i64 chat);

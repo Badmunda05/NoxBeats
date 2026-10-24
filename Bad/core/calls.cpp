@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include "log.hpp"
 #include "queue.hpp"
+#include "autoplay.hpp"
 #include "../db/db.hpp"
 #include "../i18n/lang.hpp"
 #include "../platforms/yt.hpp"
@@ -29,6 +30,7 @@ void TgCall::pause(i64 chat) {
     CHAT_LOCK(chat);
     int idx = db().get_assistant(chat);
     db().set_playing(chat, true);
+    if (TrackPtr cur = queue().get_current(chat)) cur->clock_pause();
     try { voice::backend().pause(idx, chat); }
     catch (const voice::Error& e) {
         if (e.kind == voice::Err::ConnectionNotFound || e.kind == voice::Err::NotInCall) stop(chat);
@@ -40,6 +42,7 @@ void TgCall::resume(i64 chat) {
     CHAT_LOCK(chat);
     int idx = db().get_assistant(chat);
     db().set_playing(chat, false);
+    if (TrackPtr cur = queue().get_current(chat)) cur->clock_resume();
     try { voice::backend().resume(idx, chat); }
     catch (const voice::Error& e) {
         if (e.kind == voice::Err::ConnectionNotFound || e.kind == voice::Err::NotInCall) stop(chat);
@@ -47,12 +50,29 @@ void TgCall::resume(i64 chat) {
     }
 }
 
+void TgCall::mute(i64 chat) {
+    CHAT_LOCK(chat);
+    voice::backend().mute(db().get_assistant(chat), chat);
+    db().set_muted(chat, true);
+}
+
+void TgCall::unmute(i64 chat) {
+    CHAT_LOCK(chat);
+    voice::backend().unmute(db().get_assistant(chat), chat);
+    db().set_muted(chat, false);
+}
+
 void TgCall::stop(i64 chat) {
     CHAT_LOCK(chat);
     int idx = db().get_assistant(chat);
     queue().clear(chat);
+    autoplay().reset(chat);
     db().remove_call(chat);
     db().set_loop(chat, 0);
+    db().set_speed(chat, 1.0);
+    db().set_bass(chat, 0);
+    db().set_muted(chat, false);
+    db().set_vc_channel(chat, false);
     try { voice::backend().leave(idx, chat); } catch (...) {}
 }
 
@@ -62,7 +82,7 @@ void TgCall::play_media(i64 chat, i64 mid, const TrackPtr& media, int seek_time)
     int idx = db().get_assistant(chat);
     const Strings& lg = L(chat);
     std::string thumb;
-    if (config().THUMB_GEN) thumb = (media->is_youtube && !media->thumbnail.empty()) ? media->thumbnail : config().DEFAULT_THUMB;
+    if (db().get_thumb(chat)) thumb = (media->is_youtube && !media->thumbnail.empty()) ? media->thumbnail : config().DEFAULT_THUMB;
 
     auto edit_err = [&](const std::string& text) {
         try { c.edit_text(chat, mid, text); } catch (const tg::Error&) {}
@@ -74,10 +94,15 @@ void TgCall::play_media(i64 chat, i64 mid, const TrackPtr& media, int seek_time)
     }
 
     try {
-        voice::backend().play(idx, chat, media->file_path, media->video, seek_time);
+        const double speed = db().get_speed(chat);
+        const i64 peer = db().get_vc_channel(chat) ? db().get_cplay(chat) : 0;
+        voice::backend().play(idx, chat, media->file_path, media->video, seek_time, speed, peer, db().get_bass(chat));
+        media->clock_start(seek_time, speed);
+        if (db().get_muted(chat)) { try { voice::backend().mute(idx, chat); } catch (...) {} }
         if (!seek_time) {
             media->time = 1;
             db().add_call(chat);
+            autoplay().on_track_start(chat, media);
             std::string text = lg.f("play_media", {util::html_escape(media->url), util::html_escape(media->title), media->duration, media->user});
             Keyboard kb = buttons::controls(chat);
             try {
@@ -138,7 +163,13 @@ void TgCall::play_next(i64 chat) {
         return replay(chat);
     }
 
+    TrackPtr last = queue().get_current(chat);
     TrackPtr media = queue().get_next(chat);
+    if (!media && last && db().get_autoplay(chat)) {
+        // queue ran dry: keep going with a related song
+        media = autoplay().next(chat, last);
+        if (media) queue().add(chat, media);
+    }
     if (!media) return stop(chat);
 
     if (media->message_id) {

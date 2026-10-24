@@ -38,7 +38,7 @@ public:
 
 private:
     struct Peer { bool channel = false; i64 id = 0; i64 hash = 0; };
-    struct CallInfo { nlohmann::json input_call; std::int64_t ssrc = 0; };
+    struct CallInfo { nlohmann::json input_call; std::int64_t ssrc = 0; bool video = false; };
 
     nlohmann::json rpc(const nlohmann::json& q, int timeout = 30) { return rpc_.call(q, timeout); }
     void learn(const nlohmann::json& v);                         // remember access hashes found anywhere in a result
@@ -91,7 +91,9 @@ private:
 class AssistantBackend : public Backend {
 public:
     explicit AssistantBackend(AssistantManager& m);
-    void play(int idx, i64 chat, const std::string& path, bool video, int seek) override;
+    void play(int idx, i64 chat, const std::string& path, bool video, int seek, double speed = 1.0, i64 peer = 0, int bass = 0) override;
+    void mute(int idx, i64 chat) override;
+    void unmute(int idx, i64 chat) override;
     void pause(int idx, i64 chat) override;
     void resume(int idx, i64 chat) override;
     void leave(int idx, i64 chat) override;

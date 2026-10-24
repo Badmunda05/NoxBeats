@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <random>
+#include <set>
 #include <sstream>
 #include <nlohmann/json.hpp>
 #include <atomic>
@@ -150,6 +151,101 @@ static std::vector<json> innertube_search(const std::string& q) {
     return YouTube::parse_search(r.body);
 }
 
+std::vector<json> YouTube::search_many(const std::string& q) {
+    try { return innertube_search(q); }
+    catch (const std::exception& e) { log::warn(std::string("InnerTube search error: ") + e.what()); return {}; }
+}
+
+// ---- "up next" suggestions (autoplay) --------------------------------------------------------------
+static std::string text_of(const json& v) {                 // like yt_text, plus the newer {"content": ..} form
+    if (v.is_string()) return v.get<std::string>();
+    if (v.is_object() && v.contains("content") && v["content"].is_string()) return v["content"].get<std::string>();
+    return yt_text(v);
+}
+
+static bool is_clock(const std::string& s) {                // m:ss / mm:ss / h:mm:ss
+    size_t groups = 1, digits = 0;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == ':') { if (digits == 0 || (groups > 1 && digits != 2)) return false; ++groups; digits = 0; }
+        else if (s[i] >= '0' && s[i] <= '9') ++digits;
+        else return false;
+    }
+    return groups >= 2 && groups <= 3 && digits == 2;
+}
+
+static std::string find_clock(const json& j) {
+    if (j.is_string()) { std::string s = j.get<std::string>(); return is_clock(s) ? s : ""; }
+    if (j.is_object()) { for (auto& kv : j.items()) { auto r = find_clock(kv.value()); if (!r.empty()) return r; } }
+    else if (j.is_array()) { for (const auto& x : j) { auto r = find_clock(x); if (!r.empty()) return r; } }
+    return "";
+}
+
+static std::string first_content(const json& j) {
+    if (j.is_object()) {
+        auto it = j.find("content");
+        if (it != j.end() && it->is_string() && !it->get<std::string>().empty()) return it->get<std::string>();
+        for (auto& kv : j.items()) { auto r = first_content(kv.value()); if (!r.empty()) return r; }
+    } else if (j.is_array()) {
+        for (const auto& x : j) { auto r = first_content(x); if (!r.empty()) return r; }
+    }
+    return "";
+}
+
+// Handles both response layouts YouTube uses (compactVideoRenderer and lockupViewModel).
+std::vector<json> YouTube::parse_related(const std::string& body, const std::string& exclude_id, int limit) {
+    std::vector<json> out;
+    json root = json::parse(body, nullptr, false);
+    if (root.is_discarded()) return out;
+    std::set<std::string> seen;
+    auto add = [&](const std::string& id, const std::string& title, const std::string& dur, const std::string& channel) {
+        if (id.empty() || title.empty() || id == exclude_id || !seen.insert(id).second) return;
+        out.push_back({{"id", id}, {"title", title}, {"channel", channel}, {"duration", dur.empty() ? 0 : parse_clock(dur)}});
+    };
+    std::function<void(const json&)> walk = [&](const json& j) {
+        if (j.is_object()) {
+            auto cvr = j.find("compactVideoRenderer");
+            if (cvr != j.end() && cvr->is_object()) {
+                const json& v = *cvr;
+                std::string dur = v.contains("lengthText") ? yt_text(v["lengthText"]) : "";
+                if (dur.empty() && v.contains("thumbnailOverlays")) dur = find_clock(v["thumbnailOverlays"]);
+                std::string ch = v.contains("longBylineText") ? yt_text(v["longBylineText"]) : v.contains("shortBylineText") ? yt_text(v["shortBylineText"]) : "";
+                add(v.value("videoId", ""), v.contains("title") ? yt_text(v["title"]) : "", dur, ch);
+            }
+            auto lvm = j.find("lockupViewModel");
+            if (lvm != j.end() && lvm->is_object() && lvm->value("contentType", "") == "LOCKUP_CONTENT_TYPE_VIDEO") {
+                const json& v = *lvm;
+                json meta = json::object();
+                if (v.contains("metadata") && v["metadata"].contains("lockupMetadataViewModel")) meta = v["metadata"]["lockupMetadataViewModel"];
+                add(v.value("contentId", ""), meta.contains("title") ? text_of(meta["title"]) : "",
+                    v.contains("contentImage") ? find_clock(v["contentImage"]) : "", meta.contains("metadata") ? first_content(meta["metadata"]) : "");
+            }
+            for (auto& kv : j.items()) walk(kv.value());
+        } else if (j.is_array()) {
+            for (const auto& x : j) walk(x);
+        }
+    };
+    walk(root);
+    if (static_cast<int>(out.size()) > limit) out.resize(limit);
+    return out;
+}
+
+std::vector<json> YouTube::related(const std::string& id, int limit) {
+    json body = {{"context", {{"client", {{"clientName", "WEB"}, {"clientVersion", "2.20250101.01.00"}, {"hl", "en"}, {"gl", "US"}}}}},
+                 {"videoId", id}};
+    try {
+        auto r = net::post_json("https://www.youtube.com/youtubei/v1/next?prettyPrint=false&key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+                                body, 10, nullptr,
+                                {"Referer: https://www.youtube.com/", "Origin: https://www.youtube.com",
+                                 "X-YouTube-Client-Name: 1", "X-YouTube-Client-Version: 2.20250101.01.00",
+                                 "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"});
+        if (r.status != 200) { log::warn("YouTube related request failed: HTTP " + std::to_string(r.status) + " " + r.error); return {}; }
+        return parse_related(r.body, id, limit);
+    } catch (const std::exception& e) {
+        log::warn(std::string("YouTube related error: ") + e.what());
+        return {};
+    }
+}
+
 std::optional<Track> YouTube::search(const std::string& q, i64 m_id, bool video) {
     const bool is_url = valid(q);
     const std::string want_id = is_url ? video_id_of(q) : "";
@@ -172,7 +268,7 @@ std::optional<Track> YouTube::search(const std::string& q, i64 m_id, bool video)
     std::string target = is_url ? q : "ytsearch1:" + q;
     std::vector<std::string> a{yt_dlp, "--dump-json", "--no-warnings", "--no-playlist", "--skip-download",
                                "--playlist-end", "1"};
-    std::string cookie = get_cookies();
+    std::string cookie = config().USE_COOKIES ? get_cookies() : "";
     if (!cookie.empty()) { a.push_back("--cookies"); a.push_back(cookie); }
     a.push_back("--");
     a.push_back(target);
@@ -292,13 +388,31 @@ std::string YouTube::download(const std::string& id, bool video) {
     std::string have = cached(id, video);
     if (!have.empty()) return have;
     fs::create_directories("downloads");
-    std::string via = download_via_api(id, video);
-    if (!via.empty()) return via;      // otherwise fall back to yt-dlp
-    log::info(std::string(config().API_KEY.empty() ? "API_KEY not set" : "API download failed") + ": using yt-dlp for " + id);
+    // USE_COOKIES=True : yt-dlp with cookies first, the download API as the fallback
+    // USE_COOKIES=False: the download API first (fast start), plain yt-dlp only when the API fails
+    const bool api_set = !config().API_KEY.empty() && !config().API_URL.empty();
+    const bool cookies_first = config().USE_COOKIES;
+    if (api_set && !cookies_first) {
+        std::string via = download_via_api(id, video);
+        if (!via.empty()) return via;
+        log::info("API download failed: using yt-dlp for " + id);
+    }
+    std::string got = download_ytdlp(id, video);
+    if (!got.empty()) return got;
+    if (api_set && cookies_first) {
+        log::info("yt-dlp failed: trying the download API for " + id);
+        return download_via_api(id, video);
+    }
+    return "";
+}
+
+std::string YouTube::download_ytdlp(const std::string& id, bool video) {
+    std::string ext = video ? "mp4" : "webm";
+    std::string filename = "downloads/" + id + "." + ext;
 
     std::vector<std::string> a{yt_dlp, "--quiet", "--no-warnings", "--no-playlist", "--geo-bypass",
                                "--no-overwrites", "--no-check-certificates", "-o", "downloads/%(id)s.%(ext)s"};
-    std::string cookie = get_cookies();
+    std::string cookie = config().USE_COOKIES ? get_cookies() : "";
     if (!cookie.empty()) { a.push_back("--cookies"); a.push_back(cookie); }
     if (video) {
         a.insert(a.end(), {"-f", "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio)", "--merge-output-format", "mp4"});

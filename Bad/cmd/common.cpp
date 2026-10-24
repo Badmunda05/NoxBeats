@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <ctime>
 #include <regex>
+#include "../core/calls.hpp"
+#include "../core/cleaner.hpp"
 #include "../core/config.hpp"
 #include "../core/log.hpp"
 #include "../core/util.hpp"
@@ -60,6 +62,46 @@ std::vector<std::string> parse_command(const std::string& text) {
     return parts;
 }
 
+// Alternative spellings -> the name the handlers are registered under.
+const std::map<std::string, std::string>& aliases() {
+    static const std::map<std::string, std::string> a = {
+        {"p", "play"}, {"fplay", "playforce"}, {"forceplay", "playforce"}, {"fvplay", "vplayforce"}, {"vfplay", "vplayforce"},
+        {"q", "queue"}, {"aplay", "autoplay"}, {"setloop", "loop"}, {"setspeed", "speed"}, {"speedup", "speed"},
+        {"position", "pos"}, {"addauth", "auth"}, {"delauth", "unauth"}, {"removeauth", "unauth"},
+        {"sudoers", "sudolist"}, {"listsudo", "sudolist"}, {"sudoadd", "addsudo"}, {"addsudoer", "addsudo"},
+        {"delsudoer", "delsudo"}, {"sudodel", "delsudo"}, {"remsudo", "delsudo"}, {"sudorem", "delsudo"}, {"dropsudo", "delsudo"}, {"unsudo", "delsudo"},
+        {"blockuser", "blacklist"}, {"blacklistuser", "blacklist"}, {"blackuser", "blacklist"}, {"bluser", "blacklist"},
+        {"blockchat", "blacklist"}, {"blacklistchat", "blacklist"}, {"blackchat", "blacklist"}, {"blchat", "blacklist"},
+        {"unblockuser", "unblacklist"}, {"unblacklistuser", "unblacklist"}, {"unbluser", "unblacklist"}, {"whitelistuser", "unblacklist"},
+        {"unblockchat", "unblacklist"}, {"unblacklistchat", "unblacklist"}, {"unblackchat", "unblacklist"}, {"whitechat", "unblacklist"}, {"unblchat", "unblacklist"},
+        {"blocked", "blacklisted"}, {"gcast", "broadcast"}, {"bcast", "broadcast"}, {"active", "ac"}, {"activevoice", "ac"},
+        {"log", "logs"}, {"bash", "sh"}, {"shell", "sh"}, {"nothumbs", "nothumb"}, {"commanddelete", "cmddelete"},
+        {"bassboost", "bass"}, {"listplaylist", "playlist"}, {"myplaylist", "playlist"}, {"playlists", "playlist"}, {"mylist", "playlist"},
+        {"delplaylist", "rmplaylist"}, {"removeplaylist", "rmplaylist"}, {"pplaylist", "playplaylist"}, {"plplay", "playplaylist"}, {"playmylist", "playplaylist"},
+        {"saveplaylist", "addplaylist"}, {"addsong", "addplaylist"}, {"maint", "maintenance"}, {"spt", "speedtest"}, {"assistant", "userbot"}, {"userbotjoin", "userbot"}, {"assistantjoin", "userbot"},
+        {"join", "userbot"}, {"setcplay", "channelplay"}, {"rtmp", "setrtmp"},
+    };
+    return a;
+}
+
+// "c" commands run the same handler against the channel linked with /channelplay.
+// first = command it maps to, second = true for the play family (those also pick the channel voice chat).
+const std::map<std::string, std::pair<std::string, bool>>& channel_commands() {
+    static const std::map<std::string, std::pair<std::string, bool>> a = {
+        {"cplay", {"play", true}}, {"vcplay", {"vplay", true}}, {"cvplay", {"vplay", true}},
+        {"cfplay", {"playforce", true}}, {"fcplay", {"playforce", true}}, {"cforceplay", {"playforce", true}}, {"cplayforce", {"playforce", true}},
+        {"fvcplay", {"vplayforce", true}}, {"fvcpay", {"vplayforce", true}}, {"vcplayforce", {"vplayforce", true}},
+        {"cpause", {"pause", false}}, {"cresume", {"resume", false}}, {"cmute", {"mute", false}}, {"cunmute", {"unmute", false}},
+        {"cskip", {"skip", false}}, {"cstop", {"stop", false}}, {"cend", {"stop", false}}, {"cqueue", {"queue", false}},
+        {"cclear", {"clear", false}}, {"cremove", {"remove", false}}, {"cmove", {"move", false}}, {"crestore", {"restore", false}},
+        {"cpos", {"pos", false}}, {"cposition", {"pos", false}}, {"cseek", {"seek", false}}, {"cseekback", {"seekback", false}},
+        {"cjump", {"jump", false}}, {"cbass", {"bass", false}}, {"cbassboost", {"bass", false}}, {"cspeed", {"speed", false}}, {"csetspeed", {"speed", false}}, {"cspeedup", {"speed", false}},
+        {"creplay", {"replay", false}}, {"cloop", {"loop", false}}, {"csetloop", {"loop", false}}, {"cshuffle", {"shuffle", false}},
+        {"cplayer", {"player", false}}, {"cjoin", {"userbot", false}}, {"creload", {"reload", false}},
+    };
+    return a;
+}
+
 }  // namespace
 
 void on_command(std::vector<std::string> cmds, Scope scope, Perm perm, MsgHandler fn) {
@@ -104,7 +146,13 @@ void dispatch_message(const Message& m) {
     Message mm = m;
     mm.command = parse_command(m.text);
     if (mm.command.empty() || !m.from) return;
-    const std::string& c = mm.command[0];
+    if (auto ch = channel_commands().find(mm.command[0]); ch != channel_commands().end()) {
+        mm.command[0] = ch->second.first;
+        mm.via_channel = true;
+    } else if (auto al = aliases().find(mm.command[0]); al != aliases().end()) {
+        mm.command[0] = al->second;
+    }
+    const std::string c = mm.command[0];
 
     for (const auto& r : cmd_routes()) {
         if (std::find(r.cmds.begin(), r.cmds.end(), c) == r.cmds.end()) continue;
@@ -121,7 +169,14 @@ void dispatch_message(const Message& m) {
                 tg::client().leave_chat(m.chat.id);
                 return;
             }
+            if (db().get_maintenance() && !is_sudo(m.from->id)) {
+                std::string why = db().get_maint_reason();
+                reply(m, L.f("maint", {why.empty() ? std::string() : L.f("maint_reason", {util::html_escape(why)})}));
+                return;
+            }
             r.fn(mm, L);
+            // clean mode: the command message goes too (the bot's own replies are handled in reply())
+            if (int mins = db().get_clean_mode(m.chat.id); mins > 0 && r.perm == Perm::Everyone) schedule_delete(m.chat.id, m.id, mins);
         });
         return;   // first match wins
     }
@@ -169,15 +224,24 @@ bool admin_check(const CallbackQuery& q, const Strings& L) {
     tg::client().answer_callback(q.id, L["user_no_perms"], true);
     return false;
 }
+// Who may control playback in a chat (/adminmode): 0 admins + authorized users, 1 admins only, 2 everyone.
+static bool may_control(i64 chat, i64 u) {
+    if (is_sudo(u)) return true;
+    int mode = db().get_admin_mode(chat);
+    if (mode == 2) return true;
+    if (listed_admin(chat, u)) return true;
+    return mode == 0 && db().is_auth(chat, u);
+}
+
 bool can_manage_vc(const Message& m, const Strings& L) {
     i64 u = m.from->id;
-    if (is_sudo(u) || db().is_auth(m.chat.id, u) || listed_admin(m.chat.id, u)) return true;
+    if (may_control(m.chat.id, u)) return true;
     reply(m, L["user_no_perms"]);
     return false;
 }
 bool can_manage_vc(const CallbackQuery& q, const Strings& L) {
     i64 u = q.from.id, c = q.message.chat.id;
-    if (is_sudo(u) || db().is_auth(c, u) || listed_admin(c, u)) return true;
+    if (may_control(c, u)) return true;
     tg::client().answer_callback(q.id, L["user_no_perms"], true);
     return false;
 }
@@ -202,7 +266,9 @@ std::string msg_link(i64 chat, i64 mid) {
 }
 
 Message reply(const Message& m, const std::string& text, const Keyboard& kb) {
-    return tg::client().send_message(m.chat.id, text, kb, m.id);
+    Message sent = tg::client().send_message(m.chat.id, text, kb, m.id);
+    if (int mins = db().get_clean_mode(m.chat.id); mins > 0) schedule_delete(m.chat.id, sent.id, mins);
+    return sent;
 }
 
 void play_log(const Message& m, const std::string& link, const std::string& title, const std::string& duration, const Strings& L) {
@@ -210,6 +276,25 @@ void play_log(const Message& m, const std::string& link, const std::string& titl
     auto& c = tg::client();
     c.send_message(config().LOGGER_ID,
                    L.f("play_log", {c.me().first_name, m.chat.id, util::html_escape(m.chat.title), m.from->id, m.from->mention(), link, util::html_escape(title), duration}));
+}
+
+void handle_bot_member(const BotMemberChange& c) {
+    const bool gone = c.new_status == "kicked" || c.new_status == "left";
+    if (!gone || c.old_status == "kicked" || c.old_status == "left") return;
+    auto& cl = tg::client();
+    const Strings& L = lang().get(db().get_lang(c.chat.id));
+    const bool priv = c.chat.type == ChatType::Private;
+    if (!priv) {
+        try { if (db().get_call(c.chat.id)) bad().stop(c.chat.id); } catch (...) {}
+        try { db().rm_chat(c.chat.id); } catch (...) {}
+    }
+    if (c.chat.id == config().LOGGER_ID || !db().is_logger()) return;
+    std::string who = c.by.id ? c.by.mention() : "Unknown";
+    try {
+        if (priv) cl.send_message(config().LOGGER_ID, L.f("log_blocked", {c.chat.id, who}));
+        else cl.send_message(config().LOGGER_ID, L.f("log_removed", {c.chat.id, util::html_escape(c.chat.title), c.by.id, who,
+                                                                    c.new_status == "kicked" ? "removed (kicked)" : "left"}));
+    } catch (...) {}
 }
 
 void send_log(const Message& m, const Strings& L, bool chat) {

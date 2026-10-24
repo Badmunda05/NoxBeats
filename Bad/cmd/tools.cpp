@@ -83,7 +83,10 @@ void track_time() {
         sleep_s(1);
         for (i64 chat : db().active_calls()) {
             if (!db().playing(chat)) continue;
-            if (auto m = queue().get_current(chat)) m->time += 1;
+            if (auto m = queue().get_current(chat)) {
+                if (m->speed != 1.0) m->time = m->position();   // sped-up stream: the clock knows better than a 1 s tick
+                else m->time += 1;
+            }
         }
     }
 }
@@ -153,6 +156,7 @@ void vc_watcher(int sleep = 15) {
 void auto_leave() {
     while (g_running) {
         sleep_s(3600);
+        if (!db().get_autoleave()) continue;   // switched with /autoleave (default: AUTO_LEAVE)
         auto& c = tg::client();
         for (int idx = 1; idx <= c.assistants(); ++idx) {
             try {
@@ -174,7 +178,7 @@ void auto_leave() {
 void start_background_tasks() {
     g_running = true;
     if (config().AUTO_END) g_threads.emplace_back([] { vc_watcher(); });
-    if (config().AUTO_LEAVE) g_threads.emplace_back([] { auto_leave(); });
+    g_threads.emplace_back([] { auto_leave(); });
     g_threads.emplace_back([] { track_time(); });
     g_threads.emplace_back([] { update_timer(); });
 }

@@ -32,6 +32,8 @@ NØX BEATS is one native binary. The Bot API client, the in-process MTProto assi
 
 - **Playing:** `/play` and `/vplay` accept a song name, a YouTube link, a playlist, or a reply to an audio or video file.
 - **Controls:** queue, pause, resume, skip, stop, seek, loop and replay, also available as inline buttons on the player message.
+- **Autoplay:** when the queue ends, the bot picks a related song from YouTube's "up next" list and keeps playing. It searches in the background while a song plays, never repeats a recent song, and skips mixes, jukeboxes, shorts and live streams. `/autoplay lang` and `/autoplay mood` steer the choice (20 languages, 12 moods). Saved per chat.
+- **Thumbnail switch:** `/thumbnail on|off` or the **Thumb** button chooses between a photo card and a text-only card. The default follows `THUMB_GEN`.
 - **Access control:** group admins, authorized users per chat, sudo users, and a blacklist for chats and users.
 - **Chat settings:** play mode (everyone or admins only), command delete and language, saved per chat.
 - **Languages:** 13 interface languages, selectable with `/lang`.
@@ -82,10 +84,12 @@ The required variables are listed in the README. Optional ones:
 
 | Variable | Description |
 | :-- | :-- |
-| `SESSION2`, `SESSION3` | Extra assistant sessions |
+| `SESSION2` … `SESSION10` | Extra assistant sessions (up to 10) |
 | `SESSION_TYPE` | `pyrogram` (default) or `telethon` |
 | `API_URL` | Download API base URL (for example `https://api.yourdomain.site`) |
 | `API_KEY` | Download API key. Use your own API key |
+| `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET` | Optional Spotify API keys for reading Spotify links |
+| `USE_COOKIES` | `True`: cookies + yt-dlp first, the download API is the fallback. `False`: skip cookies and call the download API directly (faster start). Default: `False` when `API_KEY` is set, else `True` |
 | `COOKIES_URL` | batbin.me links to cookie files for `yt-dlp` |
 | `YTDLP_UPDATE` | Run `yt-dlp -U` once at start (default `True`) |
 | `DURATION_LIMIT` | Longest playable track in minutes (default `60`) |

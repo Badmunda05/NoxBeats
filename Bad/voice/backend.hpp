@@ -20,7 +20,10 @@ public:
     virtual ~Backend() = default;
     // idx is the 1-based assistant number.
     // seek > 1 => start from that second (ffmpeg -ss).
-    virtual void play(int idx, i64 chat, const std::string& path, bool video, int seek) = 0;
+    // speed: 0.5..2.0 (ffmpeg atempo). peer: voice chat to join when it is not `chat` itself (channel play); 0 = `chat`.
+    virtual void play(int idx, i64 chat, const std::string& path, bool video, int seek, double speed = 1.0, i64 peer = 0, int bass = 0) = 0;
+    virtual void mute(int idx, i64 chat) = 0;
+    virtual void unmute(int idx, i64 chat) = 0;
     virtual void pause(int idx, i64 chat) = 0;
     virtual void resume(int idx, i64 chat) = 0;
     virtual void leave(int idx, i64 chat) = 0;

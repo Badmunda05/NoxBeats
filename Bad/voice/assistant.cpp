@@ -212,17 +212,38 @@ json Assistant::do_play(const json& b) {
     i64 chat = b.value("chat_id", 0LL);
     std::string url = b.value("url", "");
     int seek = b.value("seek", 0);
+    bool video = b.value("video", false);
+    double speed = b.value("speed", 1.0);
+    int bass = b.value("bass", 0);
+    i64 peer_chat = b.value("peer", 0LL);
     if (chat == 0 || url.empty()) return fail("MISSING_PARAMS", "chat_id and url required");
-    std::string cmd;
-    try { cmd = build_ffmpeg_cmd(url, seek < 0 ? 0 : seek); }
+    std::string cmd, vcmd;
+    try {
+        cmd = build_ffmpeg_cmd(url, seek < 0 ? 0 : seek, speed, bass);
+        if (video) vcmd = build_ffmpeg_video_cmd(url, seek < 0 ? 0 : seek, speed);
+    }
     catch (const std::exception&) { return fail("BAD_REQUEST", "unsafe url"); }
 
     auto lk = chat_lock(chat);
     std::lock_guard<std::mutex> g(*lk);
-    bool in_call;
-    { std::lock_guard<std::mutex> l(mu_); in_call = calls_.count(chat) > 0; }
+    bool in_call = false;
+    CallInfo stale;
+    bool has_stale = false;
+    {
+        std::lock_guard<std::mutex> l(mu_);
+        auto it = calls_.find(chat);
+        if (it != calls_.end()) {
+            // the video flag is part of the join request, so audio <-> video needs a fresh join
+            if (it->second.video == video) in_call = true;
+            else { stale = it->second; has_stale = true; calls_.erase(it); }
+        }
+    }
+    if (has_stale) {
+        try { engine_->stop(chat); } catch (...) {}
+        try { rpc({{"_", "phone.leaveGroupCall"}, {"call", stale.input_call}, {"source", stale.ssrc}}, 15); } catch (...) {}
+    }
     if (in_call) {
-        try { engine_->set_source(chat, cmd); return ok_(); }
+        try { engine_->set_source(chat, cmd, vcmd); return ok_(); }
         catch (const MediaError& e) {
             log::warn("Assistant " + std::to_string(idx_) + ": replacing stream failed (" + e.what() + "), rejoining");
             { std::lock_guard<std::mutex> l(mu_); calls_.erase(chat); }
@@ -232,7 +253,7 @@ json Assistant::do_play(const json& b) {
 
     json input;
     try {
-        Peer p = resolve_peer(chat);
+        Peer p = resolve_peer(peer_chat ? peer_chat : chat);   // channel play: the call lives in another chat
         input = get_input_call(p);
     } catch (const mtp::RpcError& e) { return map_rpc(e); }
     catch (const mtp::TransportError& e) { return fail("PLAY_FAILED", e.what()); }
@@ -246,8 +267,8 @@ json Assistant::do_play(const json& b) {
     bool joined = false;
     json err;
     try {
-        engine_->set_source(chat, cmd);
-        json r = rpc({{"_", "phone.joinGroupCall"}, {"video_stopped", true}, {"call", input}, {"join_as", {{"_", "inputPeerSelf"}}},
+        engine_->set_source(chat, cmd, vcmd);
+        json r = rpc({{"_", "phone.joinGroupCall"}, {"video_stopped", !video}, {"call", input}, {"join_as", {{"_", "inputPeerSelf"}}},
                       {"params", {{"_", "dataJSON"}, {"data", params}}}}, 45);
         joined = true;
         std::string remote = find_connection(r);
@@ -261,7 +282,7 @@ json Assistant::do_play(const json& b) {
         if (joined) { try { rpc({{"_", "phone.leaveGroupCall"}, {"call", input}, {"source", ssrc}}, 15); } catch (...) {} }
         return err;
     }
-    { std::lock_guard<std::mutex> l(mu_); calls_[chat] = CallInfo{input, ssrc}; }
+    { std::lock_guard<std::mutex> l(mu_); calls_[chat] = CallInfo{input, ssrc, video}; }
     log::info("Assistant " + std::to_string(idx_) + ": streaming in chat " + std::to_string(chat));
     return ok_();
 }
@@ -353,6 +374,14 @@ json Assistant::handle(const std::string& path, const json& b) {
         if (path == "/join") return do_join(b);
         if (path == "/leave") return do_leave(b.value("chat_id", 0LL));
         if (path == "/participants") return do_participants(b.value("chat_id", 0LL));
+        if (path == "/mute" || path == "/unmute") {
+            i64 chat = b.value("chat_id", 0LL);
+            auto lk = chat_lock(chat);
+            std::lock_guard<std::mutex> g(*lk);
+            try { if (path == "/mute") engine_->mute(chat); else engine_->unmute(chat); }
+            catch (const MediaError& e) { return fail("NOT_IN_CALL", e.what()); }
+            return ok_();
+        }
         if (path == "/pause" || path == "/resume") {
             i64 chat = b.value("chat_id", 0LL);
             auto lk = chat_lock(chat);
@@ -458,11 +487,11 @@ AssistantBackend::AssistantBackend(AssistantManager& m) : m_(m) {
     m_.on_chat_closed = [this](int, i64 chat) { if (on_chat_closed) on_chat_closed(chat); };
 }
 
-void AssistantBackend::play(int idx, i64 chat, const std::string& path, bool, int seek) {
+void AssistantBackend::play(int idx, i64 chat, const std::string& path, bool video, int seek, double speed, i64 peer, int bass) {
     bool remote = util::starts_with(path, "http://") || util::starts_with(path, "https://");
     if (!remote && !fs::exists(path)) throw Error(Err::FileNotFound, path);
     json r;
-    try { r = m_.call(idx, "/play", {{"chat_id", chat}, {"url", path}, {"seek", seek > 1 ? seek : 0}}, 90); }
+    try { r = m_.call(idx, "/play", {{"chat_id", chat}, {"url", path}, {"video", video}, {"seek", seek > 1 ? seek : 0}, {"speed", speed}, {"peer", peer}, {"bass", bass}}, 90); }
     catch (const std::exception& e) { throw Error(Err::ConnectionNotFound, e.what()); }
     if (r.value("ok", false)) return;
     std::string code = r.value("error", "PLAY_FAILED"), detail = r.value("detail", "");
@@ -483,6 +512,8 @@ static void simple(AssistantManager& m, int idx, const char* path, i64 chat, boo
 void AssistantBackend::pause(int idx, i64 chat) { simple(m_, idx, "/pause", chat, false); }
 void AssistantBackend::resume(int idx, i64 chat) { simple(m_, idx, "/resume", chat, false); }
 void AssistantBackend::leave(int idx, i64 chat) { simple(m_, idx, "/leave", chat, true); }
+void AssistantBackend::mute(int idx, i64 chat) { simple(m_, idx, "/mute", chat, false); }
+void AssistantBackend::unmute(int idx, i64 chat) { simple(m_, idx, "/unmute", chat, false); }
 
 int AssistantBackend::participants(int idx, i64 chat) {
     try {

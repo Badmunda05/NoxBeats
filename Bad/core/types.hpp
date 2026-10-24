@@ -1,6 +1,8 @@
 // Shared data types: Telegram-side objects and queue items.
 // Shared types (Media and Track are merged into one struct).
 #pragma once
+#include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -69,6 +71,14 @@ struct Message {
     bool video_chat_started = false;
     bool video_chat_ended = false;
     Keyboard reply_markup;
+    bool via_channel = false;      // a "c" command (/cplay, /cskip, ...): acts on the linked channel's voice chat
+};
+
+// The bot's own membership changed in a chat (added, kicked, left, blocked in a private chat).
+struct BotMemberChange {
+    Chat chat;
+    User by;                       // who did it
+    std::string old_status, new_status;   // Bot API statuses: member, administrator, left, kicked, ...
 };
 
 struct CallbackQuery {
@@ -94,7 +104,44 @@ struct Track {
     std::string view_count;
     bool video = false;
     bool is_youtube = true;     // false => Media (tg file / m3u8): default thumbnail
+
+    // ---- play position (works with seek, pause and speed) ----
+    double speed = 1.0;         // playback speed of the running stream
+    i64 clock_base_ms = 0;      // steady-clock ms at which position 0 would have been reached
+    i64 paused_at_ms = 0;       // 0 = running
+    static i64 now_ms() {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    }
+    void clock_start(int from_sec, double spd) {            // the stream (re)started at `from_sec`
+        speed = spd > 0 ? spd : 1.0;
+        clock_base_ms = now_ms() - static_cast<i64>(from_sec * 1000.0 / speed);
+        paused_at_ms = 0;
+    }
+    void clock_pause() { if (!paused_at_ms) paused_at_ms = now_ms(); }
+    void clock_resume() { if (paused_at_ms) { clock_base_ms += now_ms() - paused_at_ms; paused_at_ms = 0; } }
+    int position() const {                                   // seconds of the track that have been played
+        if (!clock_base_ms) return time;
+        i64 end = paused_at_ms ? paused_at_ms : now_ms();
+        int p = static_cast<int>((end - clock_base_ms) * speed / 1000.0);
+        if (duration_sec > 0) p = std::min(p, duration_sec);
+        return std::max(p, 0);
+    }
 };
+
+// A saved playlist entry (YouTube track) of a user.
+struct PlItem {
+    std::string id, title, channel, duration = "00:00";
+    int duration_sec = 0;
+    Track to_track(const std::string& mention) const {
+        Track t;
+        t.id = id; t.title = title; t.channel_name = channel; t.duration = duration; t.duration_sec = duration_sec;
+        t.url = "https://www.youtube.com/watch?v=" + id;
+        t.thumbnail = "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg";
+        t.user = mention;
+        return t;
+    }
+};
+
 using TrackPtr = std::shared_ptr<Track>;
 
 }  // namespace bot

@@ -75,6 +75,7 @@ Language::Language(const std::string& dir) {
         }
     }
     if (!langs_.count("en")) throw std::runtime_error("strings/en.json is required");
+    for (auto& [code, s] : langs_) if (code != "en") s.fill_missing(langs_.at("en"));
     log::info("Loaded languages: " + names);
 }
 
